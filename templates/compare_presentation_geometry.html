@@ -1,0 +1,538 @@
+{% extends "base.html" %}
+
+{% block title %}
+Core ↔ Presentation Geometry
+{% endblock %}
+
+{% block content %}
+
+<div class="eyebrow">
+MOR · CORE ↔ PRESENTATION GEOMETRY
+</div>
+
+<h1>
+Інваріантне ядро та контекстна деформація
+</h1>
+
+<p class="muted">
+Participant: {{participant_label}}
+</p>
+
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>{{summary.models}}</b>
+<span>models</span>
+</div>
+
+<div class="metric">
+<b>{{summary.axes}}</b>
+<span>latent axes</span>
+</div>
+
+<div class="metric">
+<b>{{summary.deep_core_axes}}</b>
+<span>deep core axes</span>
+</div>
+
+<div class="metric">
+<b>
+{{summary.presentation_sensitive_axes}}
+</b>
+<span>presentation-sensitive axes</span>
+</div>
+
+<div class="metric">
+<b>
+{{summary.mean_cross_presentation_invariance}}%
+</b>
+<span>cross-presentation invariance</span>
+</div>
+
+<div class="metric">
+<b>
+{{summary.old_pairwise_pct}}%
+→
+{{summary.new_pairwise_pct}}%
+</b>
+<span>model geometry</span>
+</div>
+
+</div>
+
+
+<section class="card">
+
+<div class="eyebrow">
+CRITICAL DISTINCTION
+</div>
+
+<h2>
+Що саме ми змінювали
+</h2>
+
+<p>
+Внутрішню структуру моделі
+<b>S</b>
+ми не перебудовували.
+</p>
+
+<p>
+Ми змінювали
+<b>presentation P</b>:
+перефразування,
+A↔B
+і поверхневу конструкцію задачі.
+</p>
+
+<p class="muted">
+Тому це експеримент над каналом
+R/E,
+а не прямий вимір
+∂Φ/∂S.
+</p>
+
+<div class="modelcard">
+
+<b>
+Z<sub>t</sub>
+=
+(S<sub>t</sub>,
+R<sub>t</sub>,
+M<sub>t</sub>)
+</b>
+
+<br><br>
+
+<b>
+Φ<sub>t</sub>
+=
+Q(
+S<sub>t</sub>,
+R<sub>t</sub>,
+M<sub>t</sub>,
+u<sub>t</sub>,
+E<sub>t</sub>
+)
+</b>
+
+<br><br>
+
+<b>
+Z<sub>t+1</sub>
+=
+D(
+Z<sub>t</sub>,
+Φ<sub>t</sub>,
+E<sub>t</sub>
+)
+</b>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="eyebrow">
+MODEL × PRESENTATION
+</div>
+
+<h2>
+Що зберегла кожна модель
+</h2>
+
+<div class="modelcompare">
+
+{% for m in model_cards %}
+
+<div class="modelcard">
+
+<h3>{{m.model}}</h3>
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>
+{{m.invariant_n}}/{{m.total_n}}
+</b>
+<span>axes preserved</span>
+</div>
+
+<div class="metric">
+<b>{{m.invariance_pct}}%</b>
+<span>invariance</span>
+</div>
+
+<div class="metric">
+<b>
+{{m.susceptibility_pct}}%
+</b>
+<span>presentation susceptibility</span>
+</div>
+
+</div>
+
+{% if m.shifts %}
+
+<div class="eyebrow"
+style="margin-top:16px">
+SHIFTS
+</div>
+
+{% for x in m.shifts %}
+
+<div class="small"
+style="margin-top:8px">
+
+<b>{{x.axis}}</b>
+·
+{{x.transition}}
+
+</div>
+
+{% endfor %}
+
+{% endif %}
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="eyebrow">
+AXIS DEFORMATION
+</div>
+
+<h2>
+Де контекст змінює
+реалізований функціональний режим
+</h2>
+
+<p class="muted">
+
+D<sub>P</sub>(i)
+=
+частка моделей,
+у яких relation по осі i
+змінився між двома
+presentation families.
+
+</p>
+
+
+{% for row in axis_rows %}
+
+<div class="modelcard"
+style="margin-top:16px">
+
+<div class="eyebrow">
+{{row.axis}}
+</div>
+
+<h3>{{row.label}}</h3>
+
+{% if row.deep_core %}
+
+<p class="check-pass">
+DEEP CORE · {{row.core_relation}}
+</p>
+
+{% else %}
+
+<p class="check-fail">
+PRESENTATION-SENSITIVE
+</p>
+
+{% endif %}
+
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>
+{{row.shifted_models}}/{{row.models}}
+</b>
+<span>models shifted</span>
+</div>
+
+<div class="metric">
+<b>
+{{row.deformation_pct}}%
+</b>
+<span>D_P(axis)</span>
+</div>
+
+</div>
+
+
+{% for cell in row.cells %}
+
+<div class="card"
+style="margin-top:10px">
+
+<b>{{cell.model}}</b>
+
+<div class="small"
+style="margin-top:6px">
+
+{{cell.old}}
+→
+{{cell.new}}
+
+{% if cell.invariant %}
+
+<span class="check-pass">
+INVARIANT
+</span>
+
+{% else %}
+
+<span class="check-fail">
+SHIFT
+</span>
+
+{% endif %}
+
+</div>
+
+<div class="tiny muted">
+
+new presentation family:
+
+{% if cell.new_form_strict %}
+
+STRICT 3/3
+
+{% else %}
+
+UNSTABLE
+
+{% endif %}
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endfor %}
+
+</section>
+
+
+<section class="card">
+
+<div class="eyebrow">
+GEOMETRY DEFORMATION
+</div>
+
+<h2>
+Як presentation змінив
+відстані між моделями
+</h2>
+
+<div class="tablewrap">
+
+<table>
+
+<tr>
+<th>Pair</th>
+<th>Old</th>
+<th>New</th>
+<th>Δ</th>
+</tr>
+
+{% for p in geometry_rows %}
+
+<tr>
+
+<td>
+{{p.left}}
+↔
+{{p.right}}
+</td>
+
+<td>
+{{p.old_pct}}%
+</td>
+
+<td>
+{{p.new_pct}}%
+</td>
+
+<td>
+
+{% if p.delta_pp > 0 %}
++
+{% endif %}
+
+{{p.delta_pp}} pp
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="eyebrow">
+MOR MODEL
+</div>
+
+<h2>
+Функція не є незалежною координатою
+</h2>
+
+<p>
+
+Мінімальний достатній стан:
+
+</p>
+
+<p>
+<b>
+Z = (S,R,M)
+</b>
+</p>
+
+<p>
+
+Функція —
+реалізований ефект:
+
+</p>
+
+<p>
+<b>
+Φ = Q(S,R,M,u,E)
+</b>
+</p>
+
+<p>
+
+І саме функціонування
+змінює наступний стан:
+
+</p>
+
+<p>
+<b>
+(S,R,M)<sub>t</sub>
+→
+Φ<sub>t</sub>
+→
+(S,R,M)<sub>t+1</sub>
+</b>
+</p>
+
+<p class="muted">
+
+Core =
+інваріант під перевіреними
+перетвореннями presentation.
+
+Boundary =
+область,
+де зміна відношення /
+контексту
+змінює Φ_realized.
+
+</p>
+
+</section>
+
+
+<section class="card">
+
+<div class="eyebrow">
+EFP CONSEQUENCE
+</div>
+
+<h2>
+Градієнти майбутнього
+</h2>
+
+<p>
+<b>
+EFP<sub>H</sub>
+=
+EFP<sub>H</sub>(S,R,M)
+</b>
+</p>
+
+<p>
+<b>
+dEFP
+=
+(∂EFP/∂S)dS
++
+(∂EFP/∂R)dR
++
+(∂EFP/∂M)dM
+</b>
+</p>
+
+<p class="muted">
+
+Найкраще втручання
+не обов'язково найбільше
+змінює систему.
+
+Раціональний канал:
+
+</p>
+
+<p>
+<b>
+argmax<sub>u</sub>
+ΔEFP / C(u)
+</b>
+</p>
+
+</section>
+
+
+<div class="toolbar">
+
+<a class="button"
+href="{{url_for(
+'stability_compare.compare',
+pack_id='MORAL-MACHINE-BOUNDARY-STABILITY-V1'
+)}}">
+← Boundary Stability
+</a>
+
+<a class="button"
+href="{{url_for(
+'form_api.form_invariance_json'
+)}}">
+RAW JSON
+</a>
+
+<a class="button"
+href="{{url_for('benchmarks')}}">
+Benchmark Lab
+</a>
+
+</div>
+
+{% endblock %}

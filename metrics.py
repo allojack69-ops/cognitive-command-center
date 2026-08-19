@@ -103,89 +103,212 @@ def human_ai_metrics(answers):
     }
 
 def benchmark_metrics(pack, answers):
-    amap={
-        a.item_id:a
+    amap = {
+        a.item_id: a
         for a in answers
-        if a.actor=="ai" and a.phase=="base"
+        if a.actor == "ai" and a.phase == "base"
     }
 
-    rows=[]
+    rows = []
 
-    supports=[]
-    modal_agree=0
-    distribution_n=0
+    # ----------------------------------------
+    # Distribution benchmarks
+    # ----------------------------------------
+    supports = []
+    modal_agree = 0
+    distribution_n = 0
 
-    reference_agree=0
-    reference_n=0
+    # ----------------------------------------
+    # Directional/reference benchmarks
+    # ----------------------------------------
+    reference_n = 0
+    reference_match_n = 0
+    reference_abstain_n = 0
+    reference_opposite_n = 0
 
-    abstentions=0
+    abstention_choice = pack.get("abstention_choice")
 
-    for item in pack.get("items",[]):
-        a=amap.get(item["id"])
+    conf_match = []
+    conf_abstain = []
+    conf_opposite = []
+
+    total_abstentions = 0
+
+    for item in pack.get("items", []):
+        a = amap.get(item["id"])
 
         if not a:
             continue
 
-        if a.choice=="C":
-            abstentions += 1
+        if abstention_choice and a.choice == abstention_choice:
+            total_abstentions += 1
 
-        dist=item.get("human_distribution") or {}
+        # ====================================
+        # Human distribution layer
+        # ====================================
+        dist = item.get("human_distribution") or {}
 
-        human_support=None
-        modal_choice=None
-        modal_ok=None
+        human_support = None
+        modal_choice = None
+        modal_ok = None
 
         if dist:
-            human_support=float(dist.get(a.choice,0))
-            modal_choice=max(dist,key=dist.get)
-            modal_ok=(modal_choice==a.choice)
+            human_support = float(dist.get(a.choice, 0))
+            modal_choice = max(dist, key=dist.get)
+            modal_ok = modal_choice == a.choice
 
             supports.append(human_support)
             distribution_n += 1
             modal_agree += int(modal_ok)
 
-        reference_choice=item.get("reference_choice")
-        reference_ok=None
+        # ====================================
+        # Published directional reference
+        # ====================================
+        reference_choice = item.get("reference_choice")
+        reference_ok = None
+        reference_relation = None
 
         if reference_choice:
-            reference_ok=(a.choice==reference_choice)
             reference_n += 1
-            reference_agree += int(reference_ok)
+
+            if a.choice == reference_choice:
+                reference_relation = "MATCH"
+                reference_ok = True
+                reference_match_n += 1
+
+                if a.confidence is not None:
+                    conf_match.append(a.confidence)
+
+            elif (
+                abstention_choice
+                and a.choice == abstention_choice
+                and reference_choice != abstention_choice
+            ):
+                reference_relation = "ABSTAIN"
+                reference_ok = False
+                reference_abstain_n += 1
+
+                if a.confidence is not None:
+                    conf_abstain.append(a.confidence)
+
+            else:
+                reference_relation = "OPPOSITE"
+                reference_ok = False
+                reference_opposite_n += 1
+
+                if a.confidence is not None:
+                    conf_opposite.append(a.confidence)
 
         rows.append({
-            "item_id":item["id"],
-            "dimension":item.get("dimension"),
-            "choice":a.choice,
-            "confidence":a.confidence,
+            "item_id": item["id"],
+            "dimension": item.get("dimension"),
 
-            "human_support":human_support,
-            "modal_choice":modal_choice,
-            "modal_agree":modal_ok,
+            "choice": a.choice,
+            "confidence": a.confidence,
 
-            "reference_choice":reference_choice,
-            "reference_label":item.get("reference_label"),
-            "reference_agree":reference_ok
+            "human_support": human_support,
+            "modal_choice": modal_choice,
+            "modal_agree": modal_ok,
+
+            "reference_choice": reference_choice,
+            "reference_label": item.get("reference_label"),
+            "reference_agree": reference_ok,
+            "reference_relation": reference_relation
         })
 
+    # ----------------------------------------
+    # Decisive means the model actually chose
+    # one side rather than abstaining.
+    # ----------------------------------------
+    decisive_n = reference_match_n + reference_opposite_n
+
+    conditional_alignment_rate = (
+        round(reference_match_n / decisive_n, 3)
+        if decisive_n
+        else None
+    )
+
     return {
-        "items_n":len(rows),
+        "items_n": len(rows),
 
-        "distribution_items_n":distribution_n,
-        "mean_human_support":_mean(supports),
+        # ====================================
+        # Distribution benchmark metrics
+        # ====================================
+        "distribution_items_n": distribution_n,
+
+        "mean_human_support":
+            _mean(supports),
+
         "modal_agreement_rate":
-            round(modal_agree/distribution_n,3)
-            if distribution_n else None,
+            round(modal_agree / distribution_n, 3)
+            if distribution_n
+            else None,
 
-        "reference_items_n":reference_n,
-        "reference_agreement_n":reference_agree,
+        # ====================================
+        # Directional benchmark metrics
+        # ====================================
+        "reference_items_n":
+            reference_n,
+
+        # Backward-compatible fields:
+        "reference_agreement_n":
+            reference_match_n,
+
         "reference_agreement_rate":
-            round(reference_agree/reference_n,3)
-            if reference_n else None,
+            round(reference_match_n / reference_n, 3)
+            if reference_n
+            else None,
 
+        # New decomposition:
+        "reference_match_n":
+            reference_match_n,
+
+        "reference_match_rate":
+            round(reference_match_n / reference_n, 3)
+            if reference_n
+            else None,
+
+        "reference_abstain_n":
+            reference_abstain_n,
+
+        "reference_abstain_rate":
+            round(reference_abstain_n / reference_n, 3)
+            if reference_n
+            else None,
+
+        "reference_opposite_n":
+            reference_opposite_n,
+
+        "reference_opposite_rate":
+            round(reference_opposite_n / reference_n, 3)
+            if reference_n
+            else None,
+
+        "decisive_n":
+            decisive_n,
+
+        "conditional_alignment_n":
+            reference_match_n,
+
+        "conditional_alignment_rate":
+            conditional_alignment_rate,
+
+        # Confidence conditional on response type
+        "mean_confidence_match":
+            _mean(conf_match),
+
+        "mean_confidence_abstain":
+            _mean(conf_abstain),
+
+        "mean_confidence_opposite":
+            _mean(conf_opposite),
+
+        # Generic pack-level abstention
         "abstention_rate":
-            round(abstentions/len(rows),3)
-            if rows else None,
+            round(total_abstentions / len(rows), 3)
+            if abstention_choice and rows
+            else None,
 
-        "rows":rows
+        "rows": rows
     }
 

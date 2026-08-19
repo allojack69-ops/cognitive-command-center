@@ -12,46 +12,150 @@ EXTERNAL BENCHMARK COMPLETE · {{run.id}}
 {{packdata.source_name or ""}}
 </p>
 
-<div class="metricgrid">
 
 {% if m.reference_items_n %}
 
+<div class="metricgrid">
+
 <div class="metric">
-<b>{{m.reference_agreement_n}}/{{m.reference_items_n}}</b>
-<span>agreement with published reference direction</span>
+<b>{{m.reference_match_n}}/{{m.reference_items_n}}</b>
+<span>MATCH · published direction</span>
 </div>
 
 <div class="metric">
-<b>{{"%.0f"|format(m.reference_agreement_rate*100)}}%</b>
-<span>directional alignment</span>
+<b>
+{{"%.0f"|format(m.reference_match_rate*100)}}%
+</b>
+<span>raw directional alignment</span>
 </div>
+
+
+<div class="metric">
+<b>{{m.reference_abstain_n}}/{{m.reference_items_n}}</b>
+<span>ABSTAIN · criterion refused</span>
+</div>
+
+<div class="metric">
+<b>
+{{"%.0f"|format(m.reference_abstain_rate*100)}}%
+</b>
+<span>abstention rate</span>
+</div>
+
+
+<div class="metric">
+<b>{{m.reference_opposite_n}}/{{m.reference_items_n}}</b>
+<span>OPPOSITE · contrary direction</span>
+</div>
+
+<div class="metric">
+<b>
+{{"%.0f"|format(m.reference_opposite_rate*100)}}%
+</b>
+<span>opposite rate</span>
+</div>
+
+
+<div class="metric">
+<b>
+{{m.conditional_alignment_n}}/{{m.decisive_n}}
+</b>
+<span>conditional alignment · decisive only</span>
+</div>
+
+<div class="metric">
+<b>
+{% if m.conditional_alignment_rate is not none %}
+{{"%.0f"|format(m.conditional_alignment_rate*100)}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>MATCH / (MATCH + OPPOSITE)</span>
+</div>
+
+</div>
+
+
+<section class="card">
+
+<div class="eyebrow">
+CONFIDENCE BY RESPONSE TYPE
+</div>
+
+<h2>Наскільки модель впевнена у різних типах рішень</h2>
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>
+{{m.mean_confidence_match
+  if m.mean_confidence_match is not none
+  else "—"}}
+</b>
+<span>mean confidence · MATCH</span>
+</div>
+
+<div class="metric">
+<b>
+{{m.mean_confidence_abstain
+  if m.mean_confidence_abstain is not none
+  else "—"}}
+</b>
+<span>mean confidence · ABSTAIN</span>
+</div>
+
+<div class="metric">
+<b>
+{{m.mean_confidence_opposite
+  if m.mean_confidence_opposite is not none
+  else "—"}}
+</b>
+<span>mean confidence · OPPOSITE</span>
+</div>
+
+</div>
+
+<p class="muted small">
+Conditional alignment не рахує відмову від критерію як
+протилежний людський вибір. Він питає окремо:
+коли модель реально обирає одну зі сторін,
+чи збігається напрям з опублікованою людською перевагою?
+</p>
+
+</section>
 
 {% endif %}
 
+
 {% if m.distribution_items_n %}
 
+<div class="metricgrid">
+
 <div class="metric">
-<b>{{m.mean_human_support if m.mean_human_support is not none else "—"}}</b>
+<b>
+{{m.mean_human_support
+  if m.mean_human_support is not none
+  else "—"}}
+</b>
 <span>mean human support for model choice</span>
 </div>
 
 <div class="metric">
 <b>
 {{"%.0f"|format(m.modal_agreement_rate*100)
-  if m.modal_agreement_rate is not none else "—"}}%
+  if m.modal_agreement_rate is not none
+  else "—"}}%
 </b>
 <span>agreement with human modal choice</span>
 </div>
 
+</div>
+
 {% endif %}
 
-<div class="metric">
-<b>
-{{"%.0f"|format(m.abstention_rate*100)
-  if m.abstention_rate is not none else "—"}}%
-</b>
-<span>C / abstention rate</span>
-</div>
+
+<div class="metricgrid">
 
 <div class="metric">
 <b>{{m.items_n}}</b>
@@ -64,19 +168,31 @@ EXTERNAL BENCHMARK COMPLETE · {{run.id}}
 {% if packdata.caveat %}
 
 <section class="card">
-<div class="eyebrow">INTERPRETATION LIMIT</div>
+
+<div class="eyebrow">
+INTERPRETATION LIMIT
+</div>
+
 <h2>Що саме вимірює цей pack</h2>
-<p>{{packdata.caveat}}</p>
+
+<p>
+{{packdata.caveat}}
+</p>
 
 {% if packdata.source_sample_note %}
-<p class="muted">{{packdata.source_sample_note}}</p>
+<p class="muted">
+{{packdata.source_sample_note}}
+</p>
 {% endif %}
 
 {% if pack.source_url %}
-<a href="{{pack.source_url}}" target="_blank" rel="noopener">
+<a href="{{pack.source_url}}"
+   target="_blank"
+   rel="noopener">
 Джерело дослідження →
 </a>
 {% endif %}
+
 </section>
 
 {% endif %}
@@ -95,7 +211,7 @@ EXTERNAL BENCHMARK COMPLETE · {{run.id}}
 <th>Dimension</th>
 <th>Model</th>
 <th>Reference</th>
-<th>Match</th>
+<th>Relation</th>
 <th>Confidence</th>
 <th>Human support</th>
 </tr>
@@ -104,49 +220,95 @@ EXTERNAL BENCHMARK COMPLETE · {{run.id}}
 
 <tr>
 
-<td><b>{{x.item_id}}</b></td>
-
-<td>{{x.dimension or "—"}}</td>
-
 <td>
-<div class="choice-big">{{x.choice}}</div>
+<b>{{x.item_id}}</b>
 </td>
 
 <td>
+{{x.dimension or "—"}}
+</td>
+
+<td>
+<div class="choice-big">
+{{x.choice}}
+</div>
+</td>
+
+<td>
+
 {% if x.reference_choice %}
+
 <b>{{x.reference_choice}}</b>
-<div class="tiny muted">{{x.reference_label or ""}}</div>
+
+<div class="tiny muted">
+{{x.reference_label or ""}}
+</div>
+
 {% elif x.modal_choice %}
+
 {{x.modal_choice}}
+
 {% else %}
+
 —
+
 {% endif %}
+
 </td>
 
+
 <td>
-{% if x.reference_agree is not none %}
-    {% if x.reference_agree %}
-    <span class="check-pass">YES ✓</span>
-    {% else %}
-    <span class="check-fail">NO ✕</span>
-    {% endif %}
+
+{% if x.reference_relation == "MATCH" %}
+
+<span class="check-pass">
+MATCH ✓
+</span>
+
+{% elif x.reference_relation == "ABSTAIN" %}
+
+<span class="pill">
+ABSTAIN
+</span>
+
+{% elif x.reference_relation == "OPPOSITE" %}
+
+<span class="check-fail">
+OPPOSITE ✕
+</span>
+
 {% elif x.modal_agree is not none %}
-    {{ "YES" if x.modal_agree else "NO" }}
+
+{{"MATCH" if x.modal_agree else "DIFFERENT"}}
+
 {% else %}
+
 —
+
 {% endif %}
+
 </td>
 
-<td>
-{{x.confidence if x.confidence is not none else "—"}}
-</td>
 
 <td>
+{{x.confidence
+  if x.confidence is not none
+  else "—"}}
+</td>
+
+
+<td>
+
 {% if x.human_support is not none %}
+
 {{"%.1f"|format(x.human_support*100)}}%
+
 {% else %}
+
 —
+
 {% endif %}
+
 </td>
 
 </tr>

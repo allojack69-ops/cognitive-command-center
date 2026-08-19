@@ -127,5 +127,7 @@
       "reference_label": "inaction over action",
       "reference_note": "Published global Moral Machine preference direction."
     }
-  ]
+  ],
+  "abstention_choice": "C",
+  "abstention_label": "Не можу обрати / refuse criterion"
 }

@@ -47,6 +47,21 @@ MODEL COMPARISON · {{participant_label}}
 <span>mean pairwise agreement</span>
 </div>
 
+<div class="metric">
+<b>{{summary.formal_choice_errors}}</b>
+<span>formal choice errors</span>
+</div>
+
+<div class="metric">
+<b>{{summary.formal_frame_errors}}</b>
+<span>formal frame errors</span>
+</div>
+
+<div class="metric">
+<b>{{summary.coherence_flags}}</b>
+<span>choice ↔ reason flags</span>
+</div>
+
 </div>
 
 
@@ -107,6 +122,21 @@ MODEL COMPARISON · {{participant_label}}
 {% endif %}
 </b>
 <span>C-choice rate</span>
+</div>
+
+<div>
+<b>{{c.formal_choice}}</b>
+<span>formal choice</span>
+</div>
+
+<div>
+<b>{{c.formal_frame}}</b>
+<span>formal frame</span>
+</div>
+
+<div>
+<b>{{c.coherence_flags}}/{{c.coherence_checked}}</b>
+<span>choice↔reason flags</span>
 </div>
 
 </div>
@@ -237,6 +267,152 @@ Choice · confidence · frame status.
 </div>
 
 </section>
+
+
+
+<section class="card">
+
+<h2>Formal checks</h2>
+
+<p class="muted small">
+Це не «моральний рейтинг» моделі.
+Тут лише формальні пункти, де постановка має перевірюваний
+логічний / математичний результат.
+Сирі відповіді не змінюються.
+</p>
+
+<div class="tablewrap">
+
+<table class="compare-table">
+
+<tr>
+<th>Check</th>
+<th>Expected</th>
+
+{% for c in cards %}
+<th>{{c.model}}</th>
+{% endfor %}
+
+</tr>
+
+{% for row in objective_rows %}
+
+<tr>
+
+<td>
+<b>{{row.key}}</b>
+
+<div class="small muted">
+{{row.label}}
+</div>
+
+<div class="tiny muted">
+{{row.phase}}
+</div>
+</td>
+
+<td>
+<div>
+Choice <b>{{row.expected_choice}}</b>
+</div>
+
+<div class="tiny muted">
+Frame {{row.expected_frame}}
+</div>
+</td>
+
+{% for cell in row.cells %}
+
+<td>
+
+<div class="{% if cell.choice_ok %}check-pass{% else %}check-fail{% endif %}">
+Choice {{cell.actual_choice}}
+{% if cell.choice_ok %}
+✓
+{% else %}
+✕
+{% endif %}
+</div>
+
+<div class="{% if cell.frame_ok %}check-pass{% else %}check-fail{% endif %}">
+Frame {{cell.actual_frame}}
+{% if cell.frame_ok %}
+✓
+{% else %}
+✕
+{% endif %}
+</div>
+
+{% if cell.reason_choice %}
+
+<div class="small">
+Reason → <b>{{cell.reason_choice}}</b>
+</div>
+
+{% if cell.coherence is not none and not cell.coherence %}
+<div class="coherence-alert">
+CHOICE ↔ REASON FAIL
+</div>
+{% elif cell.coherence %}
+<div class="coherence-ok">
+choice ↔ reason coherent
+</div>
+{% endif %}
+
+{% endif %}
+
+</td>
+
+{% endfor %}
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+{% if coherence_anomalies %}
+
+<section class="card anomaly-card">
+
+<h2>⚠ Choice ↔ Reason anomalies</h2>
+
+<p class="muted small">
+Детектор консервативний:
+він спрацьовує лише коли reason явно формулює висновок A/B/C,
+який не збігається із записаним choice.
+</p>
+
+{% for x in coherence_anomalies %}
+
+<div class="anomaly-item">
+
+<div class="eyebrow">
+{{x.model}} · {{x.check}}
+</div>
+
+<h3>
+Choice {{x.choice}}
+≠
+Reason → {{x.reason_choice}}
+</h3>
+
+<p>
+{{x.reason}}
+</p>
+
+</div>
+
+{% endfor %}
+
+</section>
+
+{% endif %}
 
 
 <section class="card">

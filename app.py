@@ -14,6 +14,7 @@ from studies import (
     bot_base_prompt, bot_follow_prompt, state_base_prompt, state_follow_prompt
 )
 from metrics import bot_metrics, human_ai_metrics, benchmark_metrics
+from quality_checks import OBJECTIVE_RULES, evaluate_bot_quality
 
 BASE=Path(__file__).resolve().parent
 app=Flask(__name__)
@@ -289,6 +290,7 @@ def compare_models():
         base_maps={}
         update_maps={}
         metric_maps={}
+        quality_maps={}
         display_labels={}
 
         for r in runs:
@@ -313,10 +315,12 @@ def compare_models():
                     update[a.item_id]=a
 
             metrics=bot_metrics(r.answers)
+            quality=evaluate_bot_quality(base,update)
 
             base_maps[r.id]=base
             update_maps[r.id]=update
             metric_maps[r.id]=metrics
+            quality_maps[r.id]=quality
             display_labels[r.id]=display
 
             def pct(v):
@@ -349,7 +353,19 @@ def compare_models():
                     metrics.get("mean_confidence"),
 
                 "third_path":
-                    pct(metrics.get("c_choice_rate"))
+                    pct(metrics.get("c_choice_rate")),
+
+                "formal_choice":
+                    f"{quality['choice_correct']}/{quality['total']}",
+
+                "formal_frame":
+                    f"{quality['frame_correct']}/{quality['total']}",
+
+                "coherence_flags":
+                    quality["coherence_mismatches"],
+
+                "coherence_checked":
+                    quality["coherence_checked"]
             })
 
         # ---------------------------
@@ -490,11 +506,76 @@ def compare_models():
                 "cells":cells
             })
 
+        # ---------------------------
+        # Formal / objective checks
+        # ---------------------------
+        objective_rows=[]
+        coherence_anomalies=[]
+
+        for rule in OBJECTIVE_RULES:
+            cells=[]
+
+            for r in runs:
+                q=quality_maps[r.id]
+
+                qrow=next(
+                    (
+                        x for x in q["rows"]
+                        if x["key"]==rule["key"]
+                    ),
+                    None
+                )
+
+                if not qrow:
+                    qrow={
+                        "actual_choice":"—",
+                        "actual_frame":"—",
+                        "choice_ok":None,
+                        "frame_ok":None,
+                        "reason_choice":None,
+                        "coherence":None,
+                        "reason":""
+                    }
+
+                cells.append(qrow)
+
+                if qrow.get("coherence") is False:
+                    coherence_anomalies.append({
+                        "model":display_labels[r.id],
+                        "check":rule["key"],
+                        "choice":qrow["actual_choice"],
+                        "reason_choice":qrow["reason_choice"],
+                        "reason":qrow["reason"]
+                    })
+
+            objective_rows.append({
+                "key":rule["key"],
+                "item_id":rule["item_id"],
+                "phase":rule["phase"],
+                "label":rule["label"],
+                "expected_choice":rule["expected_choice"],
+                "expected_frame":rule["expected_frame"],
+                "cells":cells
+            })
+
+        total_formal_choice_errors=sum(
+            q["total"]-q["choice_correct"]
+            for q in quality_maps.values()
+        )
+
+        total_formal_frame_errors=sum(
+            q["total"]-q["frame_correct"]
+            for q in quality_maps.values()
+        )
+
         summary={
             "models":len(runs),
             "unanimous":unanimous,
             "split":split,
-            "mean_agreement":mean_agreement
+            "mean_agreement":mean_agreement,
+            "formal_choice_errors":total_formal_choice_errors,
+            "formal_frame_errors":total_formal_frame_errors,
+            "coherence_flags":len(coherence_anomalies)
         }
 
         participant_label=participant.label or participant.id
@@ -506,6 +587,8 @@ def compare_models():
         scenario_rows=scenario_rows,
         follow_rows=follow_rows,
         agreement=agreement,
+        objective_rows=objective_rows,
+        coherence_anomalies=coherence_anomalies,
         summary=summary
     )
 

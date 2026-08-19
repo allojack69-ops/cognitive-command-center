@@ -98,3 +98,68 @@ font-size:9px;
 word-break:break-word;
 }
 
+
+/* ==========================================================
+   Formal checks / response coherence
+   ========================================================== */
+
+.check-pass{
+color:#79f2c0;
+font-weight:800;
+margin-bottom:4px;
+}
+
+.check-fail{
+color:#ff9a9a;
+font-weight:800;
+margin-bottom:4px;
+}
+
+.coherence-alert{
+margin-top:7px;
+display:inline-block;
+padding:4px 7px;
+border:1px solid #8a4242;
+background:#2b1111;
+color:#ffb0b0;
+border-radius:8px;
+font-size:10px;
+font-weight:900;
+}
+
+.coherence-ok{
+margin-top:7px;
+color:#79f2c0;
+font-size:10px;
+font-weight:800;
+}
+
+.anomaly-card{
+border-color:#6d3d3d;
+background:
+linear-gradient(
+145deg,
+#1c1115,
+#0d131c
+);
+}
+
+.anomaly-item{
+padding:14px 0;
+border-bottom:1px solid var(--line);
+}
+
+.anomaly-item:last-child{
+border-bottom:0;
+}
+
+.anomaly-item h3{
+margin:6px 0;
+font-size:20px;
+}
+
+.anomaly-item p{
+color:#c7d6e5;
+font-size:13px;
+line-height:1.5;
+}

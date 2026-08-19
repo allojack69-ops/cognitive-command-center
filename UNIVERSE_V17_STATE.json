@@ -1,0 +1,7 @@
+{
+  "version": "1.7",
+  "scope": "visible_global_background_override",
+  "db_schema_changes": false,
+  "routes_changed": false,
+  "backup": ".universe_lab_backup_v17_20260820-014056"
+}

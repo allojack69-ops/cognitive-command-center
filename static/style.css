@@ -683,3 +683,117 @@ textarea,
 }
 
 /* ===== Universe Lab Background Tune v1.6 END ===== */
+
+/* ===== Universe Lab Visible Background v1.7 START ===== */
+
+/* Make the matrix clearly visible, not merely hinted. */
+body::before {
+  opacity: .86 !important;
+  filter: saturate(1.22) contrast(1.14) brightness(.98) !important;
+  transform: scale(1.015) !important;
+  background-position: center center !important;
+}
+
+/* Keep only a light readability veil. */
+body::after {
+  background:
+    radial-gradient(ellipse at 50% 28%,
+      rgba(2,6,12,.46) 0%,
+      rgba(3,7,14,.30) 34%,
+      rgba(3,7,14,.14) 62%,
+      rgba(3,7,14,.04) 100%),
+    linear-gradient(180deg,
+      rgba(2,6,12,.08),
+      rgba(2,6,12,.20) 48%,
+      rgba(2,6,12,.36)) !important;
+  backdrop-filter: blur(.15px) !important;
+  -webkit-backdrop-filter: blur(.15px) !important;
+}
+
+/* Acrylic cards: enough contrast to read, enough transparency to see field. */
+.card,
+.projectcard,
+.public-feature-card,
+.research-principle,
+.research-tools > a,
+.public-value-strip > div,
+.test-outcome-grid > div,
+.flow-steps > div,
+.test-choice-main,
+.analytics-kpis > div,
+.analytics-funnel-card,
+.funnel-stage,
+.notice {
+  background:
+    linear-gradient(145deg,
+      rgba(10,19,31,.52),
+      rgba(5,11,20,.44)) !important;
+  border-color: rgba(124,196,255,.24) !important;
+  backdrop-filter: blur(10px) saturate(1.10) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.10) !important;
+}
+
+/* Research formulas remain easy to read. */
+.research-principle {
+  background:
+    linear-gradient(145deg,
+      rgba(9,18,30,.58),
+      rgba(5,11,20,.50)) !important;
+}
+
+/* Hero should float over the field, not cover it. */
+.public-hero {
+  background:
+    radial-gradient(ellipse at 42% 36%,
+      rgba(3,8,16,.28),
+      rgba(3,8,16,.10) 58%,
+      rgba(3,8,16,0) 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Header/footer still slightly glassy. */
+header {
+  background: rgba(3,7,13,.64) !important;
+  backdrop-filter: blur(13px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(13px) saturate(1.08) !important;
+}
+
+footer {
+  background: rgba(3,7,13,.58) !important;
+}
+
+/* Mobile: still clearly visible, but not fighting text. */
+@media (max-width: 700px) {
+  body::before {
+    opacity: .68 !important;
+    filter: saturate(1.15) contrast(1.10) brightness(.90) !important;
+    background-position: 50% center !important;
+  }
+
+  body::after {
+    background:
+      radial-gradient(ellipse at 50% 28%,
+        rgba(2,6,12,.52) 0%,
+        rgba(3,7,13,.34) 42%,
+        rgba(3,7,13,.12) 72%,
+        rgba(2,5,10,.02) 100%),
+      linear-gradient(180deg,
+        rgba(2,6,12,.10),
+        rgba(2,6,12,.30) 58%,
+        rgba(2,6,12,.48)) !important;
+  }
+
+  .card,
+  .projectcard,
+  .public-feature-card,
+  .research-principle,
+  .research-tools > a {
+    background:
+      linear-gradient(145deg,
+        rgba(9,18,30,.60),
+        rgba(5,11,20,.52)) !important;
+  }
+}
+
+/* ===== Universe Lab Visible Background v1.7 END ===== */

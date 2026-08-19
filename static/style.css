@@ -219,3 +219,61 @@ flex-direction:column;
 @media(max-width:700px){.public-nav-shell{align-items:flex-start;flex-direction:column;gap:8px}.public-nav{width:100%;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}.public-nav::-webkit-scrollbar{display:none}.public-nav a{white-space:nowrap;border:1px solid #1e2a38;background:#0b1119}.public-hero{padding:34px 0 22px}.public-hero h1{font-size:48px}.compact-hero h1{font-size:42px}.public-lead{font-size:17px!important}.public-stats,.public-feature-grid,.two-feature,.public-compact-grid,.experiment-grid,.research-system-grid,.research-tools{grid-template-columns:1fr}.public-feature-card{min-height:220px}.public-feature-card h3{font-size:25px}.section-head{align-items:flex-start;flex-direction:column;gap:8px}.research-strip,.data-note{align-items:flex-start;flex-direction:column}.flow-steps{grid-template-columns:1fr 1fr}.test-choice-meta{grid-template-columns:1fr 1fr}.public-footer{align-items:flex-start}.recent-runs-public{overflow:hidden}.nav nav{display:flex}}
 @media(max-width:420px){.public-hero h1{font-size:41px}.compact-hero h1{font-size:38px}.flow-steps{grid-template-columns:1fr}.test-choice-meta{grid-template-columns:1fr 1fr}.public-stats>div{padding:16px}.public-stats b{font-size:30px}}
 /* ===== Universe Lab Public Layer v1.1 END ===== */
+
+/* ===== Universe Lab Public UX v1.2 START ===== */
+.public-entry-hero{max-width:960px}
+.public-entry-actions{margin-top:30px}
+.public-cta-xl{padding:16px 24px;font-size:15px;min-width:180px;text-align:center}
+.public-stats-entry{margin-top:26px}
+.public-value-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:10px 0 22px}
+.public-value-strip>div{display:flex;gap:14px;border:1px solid var(--line);border-radius:18px;background:#0b1119;padding:18px}
+.value-index{color:var(--accent);font-weight:900;font-size:16px;line-height:1}
+.public-value-strip b{display:block;font-size:15px;margin-bottom:7px}
+.public-value-strip p{margin:0;color:var(--muted);font-size:11px;line-height:1.45}
+.compact-actions{margin:0}
+.test-ai-hero{padding-bottom:18px}
+.test-outcome-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 26px}
+.test-outcome-grid>div{border:1px solid #294056;border-radius:18px;background:linear-gradient(145deg,#101a26,#0a1017);padding:18px}
+.test-outcome-grid span{display:block;color:var(--accent);font-weight:900;font-size:12px;margin-bottom:14px}
+.test-outcome-grid b{display:block;font-size:17px;margin-bottom:7px}
+.test-outcome-grid p{margin:0;color:var(--muted);font-size:11px;line-height:1.45}
+html{scroll-behavior:smooth}
+@media(max-width:850px){
+  .public-value-strip,.test-outcome-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .public-entry-hero{padding-top:28px}
+  .public-entry-actions .button{width:100%;text-align:center}
+  .public-cta-xl{font-size:14px}
+  .public-stats-entry{margin-top:18px}
+}
+@media(max-width:420px){
+  .public-entry-hero h1{font-size:40px}
+  .test-ai-hero h1{font-size:38px}
+}
+/* ===== Universe Lab Public UX v1.2 END ===== */
+
+/* ===== Universe Lab Private Analytics v1.3 START ===== */
+.analytics-toolbar{margin:16px 0 22px}
+.analytics-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0 24px}
+.analytics-kpis>div{border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#111a26,#0b1119);padding:18px}
+.analytics-kpis span{display:block;color:var(--accent2);font-size:9px;letter-spacing:.13em;font-weight:900}
+.analytics-kpis b{display:block;font-size:38px;line-height:1;margin:12px 0 7px}
+.analytics-kpis small{display:block;color:var(--muted);font-size:11px}
+.analytics-mini{display:flex;gap:9px;flex-wrap:wrap}
+.analytics-mini span{border:1px solid var(--line);border-radius:999px;padding:6px 9px;color:var(--muted);font-size:10px}
+.analytics-mini b{color:var(--text)}
+.analytics-split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.analytics-split .card{margin:0}
+.analytics-table th,.analytics-table td{white-space:nowrap}
+.analytics-subhead{margin-top:26px}
+.analytics-definition p{margin:7px 0;color:var(--muted);font-size:12px}
+@media(max-width:800px){
+  .analytics-kpis{grid-template-columns:1fr 1fr}
+  .analytics-split{grid-template-columns:1fr}
+}
+@media(max-width:430px){
+  .analytics-kpis{grid-template-columns:1fr 1fr}
+  .analytics-kpis b{font-size:31px}
+}
+/* ===== Universe Lab Private Analytics v1.3 END ===== */

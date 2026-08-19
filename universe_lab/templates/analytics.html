@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Private traffic analytics · Universe Lab{% endblock %}
+{% block content %}
+<div class="eyebrow">PRIVATE · ADMIN ONLY</div>
+<h1>Traffic analytics</h1>
+<p class="muted">
+  First-party analytics for Universe Lab. Timezone: {{data.timezone}}.
+  Admin, static, API and detected bot traffic are excluded.
+</p>
+
+<div class="toolbar analytics-toolbar">
+  <a class="button" href="{{url_for('admin')}}">Admin HQ</a>
+  <a class="button" href="{{url_for('universe_analytics.dashboard_json')}}">analytics.json</a>
+  <a class="button" href="{{url_for('admin_logout')}}">Logout</a>
+</div>
+
+<section class="analytics-kpis">
+  <div>
+    <span>ALL TIME</span>
+    <b>{{data.all_time.unique_browsers}}</b>
+    <small>unique browsers</small>
+  </div>
+  <div>
+    <span>ALL TIME</span>
+    <b>{{data.all_time.visits}}</b>
+    <small>visits</small>
+  </div>
+  <div>
+    <span>ALL TIME</span>
+    <b>{{data.all_time.pageviews}}</b>
+    <small>pageviews</small>
+  </div>
+  <div>
+    <span>TODAY</span>
+    <b>{{data.today.visitors}}</b>
+    <small>unique browsers</small>
+  </div>
+  <div>
+    <span>TODAY</span>
+    <b>{{data.today.visits}}</b>
+    <small>visits</small>
+  </div>
+  <div>
+    <span>TODAY</span>
+    <b>{{data.today.pageviews}}</b>
+    <small>pageviews</small>
+  </div>
+</section>
+
+<section class="card">
+  <div class="cardhead">
+    <div><div class="eyebrow">DAILY</div><h2>Last 30 days</h2></div>
+    <div class="analytics-mini">
+      <span>7d PV <b>{{data.last_7_days.pageviews}}</b></span>
+      <span>30d PV <b>{{data.last_30_days.pageviews}}</b></span>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table class="analytics-table">
+      <tr>
+        <th>Date</th><th>Unique browsers</th><th>Visits</th><th>Pageviews</th>
+        <th>Runs started</th><th>Runs completed</th>
+      </tr>
+      {% for row in data.daily %}
+      <tr>
+        <td>{{row.date}}</td>
+        <td>{{row.visitors}}</td>
+        <td>{{row.visits}}</td>
+        <td>{{row.pageviews}}</td>
+        <td>{{row.runs_started}}</td>
+        <td>{{row.runs_completed}}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</section>
+
+<div class="analytics-split">
+  <section class="card">
+    <div class="eyebrow">CONTENT</div><h2>Top pages</h2>
+    <div class="tablewrap"><table>
+      <tr><th>Path</th><th>PV</th></tr>
+      {% for x in data.top_pages %}
+      <tr><td>{{x.path}}</td><td>{{x.pageviews}}</td></tr>
+      {% else %}<tr><td colspan="2" class="muted">No tracked visits yet.</td></tr>{% endfor %}
+    </table></div>
+  </section>
+
+  <section class="card">
+    <div class="eyebrow">ACQUISITION</div><h2>Referrers</h2>
+    <div class="tablewrap"><table>
+      <tr><th>Domain</th><th>PV</th></tr>
+      {% for x in data.top_referrers %}
+      <tr><td>{{x.source}}</td><td>{{x.pageviews}}</td></tr>
+      {% else %}<tr><td colspan="2" class="muted">No external referrers yet.</td></tr>{% endfor %}
+    </table></div>
+
+    <h3 class="analytics-subhead">UTM sources</h3>
+    <div class="tablewrap"><table>
+      <tr><th>Source / campaign</th><th>PV</th></tr>
+      {% for x in data.utm_sources %}
+      <tr><td>{{x.source}}</td><td>{{x.pageviews}}</td></tr>
+      {% else %}<tr><td colspan="2" class="muted">No UTM traffic yet.</td></tr>{% endfor %}
+    </table></div>
+  </section>
+</div>
+
+<section class="notice analytics-definition">
+  <b>Counting rules</b>
+  <p><b>Unique browser</b> = anonymous first-party visitor cookie. Clearing cookies creates a new ID.</p>
+  <p><b>Visit</b> = rolling 30-minute session. <b>Pageview</b> = one tracked human-like GET navigation.</p>
+  <p>No IP address or full user-agent is stored by this module.</p>
+</section>
+{% endblock %}

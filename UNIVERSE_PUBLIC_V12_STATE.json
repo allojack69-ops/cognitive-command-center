@@ -1,0 +1,12 @@
+{
+  "version": "1.2",
+  "scope": "public_ux_only",
+  "backup": ".universe_lab_backup_public_v12_20260820-010311",
+  "db_schema_changes": false,
+  "routes_changed": false,
+  "templates_replaced": [
+    "templates/base.html",
+    "templates/index.html",
+    "universe_lab/templates/public_test_ai.html"
+  ]
+}

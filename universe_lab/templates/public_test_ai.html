@@ -1,39 +1,96 @@
 {% extends "base.html" %}
 {% block title %}Test your AI · Universe Lab{% endblock %}
 {% block content %}
-<section class="public-hero compact-hero">
+
+<section class="public-hero compact-hero test-ai-hero">
   <div class="eyebrow">TEST YOUR AI</div>
-  <h1>Bring your own model.<br>We provide the protocol.</h1>
-  <p class="public-lead">Choose a standardized test, copy the generated prompt into your ChatGPT / Gemini / Claude / other AI, then paste the JSON response back. The validator turns it into a comparable research run.</p>
+  <h1>Bring your model.<br>We provide the protocol.</h1>
+  <p class="public-lead">
+    Start with Bot Cognitive Stress: a standardized two-phase AI run.
+    Use the generated prompt in your own AI, return the JSON, and get a comparable research result.
+  </p>
+
+  <div class="hero-actions public-entry-actions">
+    <a class="button primary public-primary public-cta-xl" href="{{url_for('bot_new')}}">
+      START BOT TEST →
+    </a>
+    <a class="button public-secondary" href="#how-it-works">How it works</a>
+  </div>
+
+  <div class="trust-row">
+    <span>ChatGPT / Gemini / Claude / other AI</span>
+    <span>Your own account or personalized state</span>
+    <span>Strict JSON validation</span>
+  </div>
+</section>
+
+<section class="test-outcome-grid" aria-label="What the run gives you">
+  <div><span>01</span><b>One versioned run</b><p>Your answers remain tied to the exact protocol version.</p></div>
+  <div><span>02</span><b>Behavioral signals</b><p>Track choices, confidence and changes across follow-up perturbations.</p></div>
+  <div><span>03</span><b>Comparison path</b><p>Run another model or state and compare completed Bot Stress runs.</p></div>
+</section>
+
+<section id="how-it-works" class="section-head section-gap">
+  <div><div class="eyebrow">HOW IT WORKS</div><h2>Four steps. One comparable run.</h2></div>
 </section>
 
 <div class="flow-steps">
-  <div><span>1</span><b>Create run</b><p>Choose model and personalization state.</p></div>
-  <div><span>2</span><b>Run prompt</b><p>Use the exact prompt in your own AI.</p></div>
+  <div><span>1</span><b>Create run</b><p>Choose model label and personalization state.</p></div>
+  <div><span>2</span><b>Run prompt</b><p>Use the exact generated prompt in your own AI.</p></div>
   <div><span>3</span><b>Return JSON</b><p>Paste the model response into the validator.</p></div>
-  <div><span>4</span><b>Get metrics</b><p>See stability, divergence and comparison signals.</p></div>
+  <div><span>4</span><b>Open result</b><p>Review the completed run and comparison signals.</p></div>
 </div>
 
 <section class="test-choice-main">
   <div class="test-choice-copy">
     <div class="eyebrow">RECOMMENDED FIRST TEST</div>
     <h2>Bot Cognitive Stress</h2>
-    <p>20 controlled scenarios plus 6 follow-up perturbations. The run checks not only choices, but confidence, assumptions, response consistency and how the model reacts when the frame changes.</p>
-    <div class="hero-actions"><a class="button primary public-primary" href="{{url_for('bot_new')}}">START BOT TEST →</a><a class="button" href="{{url_for('compare_models')}}">Compare existing runs</a></div>
+    <p>
+      20 controlled scenarios plus 6 follow-up perturbations.
+      The protocol records choices, confidence, short reasons and how the model responds when the frame changes.
+    </p>
+    <div class="hero-actions">
+      <a class="button primary public-primary" href="{{url_for('bot_new')}}">START BOT TEST →</a>
+      <a class="button" href="{{url_for('compare_models')}}">Compare existing runs</a>
+    </div>
   </div>
   <div class="test-choice-meta">
     <div><b>20 + 6</b><span>scenario structure</span></div>
     <div><b>2</b><span>phases</span></div>
     <div><b>JSON</b><span>strict validation</span></div>
-    <div><b>BYO AI</b><span>your own account/model</span></div>
+    <div><b>BYO AI</b><span>your own model/account</span></div>
   </div>
 </section>
 
-<section class="section-head section-gap"><div><div class="eyebrow">OTHER PUBLIC TESTS</div><h2>Go beyond one model run</h2></div></section>
+<section class="section-head section-gap">
+  <div><div class="eyebrow">OTHER PUBLIC TESTS</div><h2>Go beyond one AI run.</h2></div>
+</section>
+
 <div class="public-feature-grid two-feature">
-  <a class="public-feature-card" href="{{url_for('hai_new')}}"><div class="projecttop"><span class="projectnum">02</span><span class="projectstatus">PAIR</span></div><h3>HUMAN ↔ AI PAIR</h3><p>You answer first. Then your personalized AI answers the matched protocol. Measure where the pair converges and diverges.</p><strong>Start pair test →</strong></a>
-  <a class="public-feature-card" href="{{url_for('universe_grp.home')}}"><div class="projecttop"><span class="projectnum">03</span><span class="projectstatus">HUMAN</span></div><h3>COGNITIVE DYNAMICS / GRP</h3><p>A 32-step human association experiment with randomized intervention and washout structure.</p><strong>Run GRP →</strong></a>
+  <a class="public-feature-card" href="{{url_for('hai_new')}}">
+    <div class="projecttop"><span class="projectnum">02</span><span class="projectstatus">PAIR</span></div>
+    <h3>HUMAN ↔ AI PAIR</h3>
+    <p>You answer first. Then your personalized AI answers the matched protocol. Measure where the pair converges and diverges.</p>
+    <strong>Start pair test →</strong>
+  </a>
+
+  <a class="public-feature-card" href="{{url_for('universe_grp.home')}}">
+    <div class="projecttop"><span class="projectnum">03</span><span class="projectstatus">HUMAN</span></div>
+    <h3>COGNITIVE DYNAMICS / GRP</h3>
+    <p>A 32-step human association experiment with randomized intervention and washout structure.</p>
+    <strong>Run GRP →</strong>
+  </a>
 </div>
 
-<section class="data-note section-gap"><div><h3>What is stored?</h3><p>Runs use an anonymous participant ID. The laboratory stores protocol metadata, model label/personalization metadata you provide, submitted answers and derived metrics. No email is required for public runs.</p></div><a href="{{url_for('universe_lab.data_home')}}">Data layer →</a></section>
+<section class="data-note section-gap">
+  <div>
+    <h3>What is stored?</h3>
+    <p>
+      Public runs use an anonymous participant ID. The laboratory stores protocol metadata,
+      model/personalization metadata you provide, submitted answers and derived metrics.
+      No email is required for public runs.
+    </p>
+  </div>
+  <a href="{{url_for('universe_lab.data_home')}}">Data layer →</a>
+</section>
 {% endblock %}

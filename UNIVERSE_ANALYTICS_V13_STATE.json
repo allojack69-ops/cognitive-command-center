@@ -1,0 +1,16 @@
+{
+  "version": "1.3",
+  "scope": "private_first_party_traffic_analytics",
+  "db_schema_changes": false,
+  "reuses_table": "events",
+  "event_type": "site_pageview_v1",
+  "private_routes": [
+    "/admin/analytics",
+    "/admin/analytics.json"
+  ],
+  "cookies": {
+    "ul_vid": "anonymous browser ID",
+    "ul_visit": "rolling 30-minute visit ID"
+  },
+  "backup": ".universe_lab_backup_analytics_v13_20260820-010744"
+}

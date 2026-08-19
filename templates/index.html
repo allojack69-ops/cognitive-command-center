@@ -1,69 +1,133 @@
 {% extends "base.html" %}
-{% block title %}Universe Lab · Human–AI Research{% endblock %}
+{% block title %}Universe Lab · Test your AI{% endblock %}
 {% block content %}
 {% set ps=universe_public_stats() %}
-<section class="public-hero">
+
+<section class="public-hero public-entry-hero">
   <div class="eyebrow">OPEN HUMAN–AI RESEARCH PLATFORM</div>
   <h1>Test your AI.<br>Compare how it thinks.</h1>
-  <p class="public-lead">Run standardized experiments on your own AI, compare it with humans and other models, and contribute structured data to a growing Human–AI laboratory.</p>
-  <div class="hero-actions">
-    <a class="button primary public-primary" href="{{url_for('universe_public.test_ai')}}">TEST MY AI →</a>
-    <a class="button public-secondary" href="{{url_for('universe_public.experiments')}}">Explore experiments</a>
+  <p class="public-lead">
+    Bring ChatGPT, Gemini, Claude or another AI. Run a standardized protocol,
+    get a comparable result, and contribute structured observations to a shared Human–AI laboratory.
+  </p>
+
+  <div class="hero-actions public-entry-actions">
+    <a class="button primary public-primary public-cta-xl"
+       href="{{url_for('universe_public.test_ai')}}">TEST MY AI →</a>
+    <a class="button public-secondary"
+       href="{{url_for('universe_public.experiments')}}">Browse experiments</a>
   </div>
+
   <div class="trust-row">
-    <span>Anonymous participant ID</span><span>Versioned protocols</span><span>JSON-validated AI runs</span>
+    <span>No email required</span>
+    <span>Anonymous participant ID</span>
+    <span>Versioned protocols</span>
+    <span>JSON-validated AI runs</span>
   </div>
 </section>
 
-<section class="public-stats">
+<section class="public-stats public-stats-entry" aria-label="Live laboratory activity">
   <div><b>{{ps.participants}}</b><span>participants</span></div>
   <div><b>{{ps.completed_runs}}</b><span>completed runs</span></div>
   <div><b>{{ps.models}}</b><span>AI models</span></div>
-  <div><b>{{ps.experiments}}</b><span>public + lab protocols</span></div>
+  <div><b>{{ps.experiments}}</b><span>active protocols</span></div>
 </section>
 
-<section class="section-head">
-  <div><div class="eyebrow">START HERE</div><h2>Choose what you want to test</h2></div>
-  <a href="{{url_for('universe_public.test_ai')}}">How AI testing works →</a>
+<section class="public-value-strip">
+  <div>
+    <span class="value-index">01</span>
+    <div><b>Run a controlled test</b><p>Use the same protocol across different models or personalized states.</p></div>
+  </div>
+  <div>
+    <span class="value-index">02</span>
+    <div><b>Get a comparable run</b><p>Choices, confidence, follow-up behavior and derived signals stay tied to one versioned protocol.</p></div>
+  </div>
+  <div>
+    <span class="value-index">03</span>
+    <div><b>Feed the laboratory</b><p>Your submitted run becomes part of the shared research dataset under an anonymous participant ID.</p></div>
+  </div>
 </section>
+
+<section class="section-head section-gap">
+  <div>
+    <div class="eyebrow">PUBLIC TESTS</div>
+    <h2>Start with one run.</h2>
+  </div>
+  <a href="{{url_for('universe_public.experiments')}}">See all protocols →</a>
+</section>
+
 <div class="public-feature-grid">
   {% for p in universe_public_projects %}
   <a class="public-feature-card" href="{{url_for(p.endpoint)}}">
-    <div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div>
-    <h3>{{p.title}}</h3><p>{{p.subtitle}}</p><strong>{{p.cta}} →</strong>
+    <div class="projecttop">
+      <span class="projectnum">{{p.number}}</span>
+      <span class="projectstatus">{{p.status}}</span>
+    </div>
+    <h3>{{p.title}}</h3>
+    <p>{{p.subtitle}}</p>
+    <strong>{{p.cta}} →</strong>
   </a>
   {% endfor %}
 </div>
 
-<section class="section-head section-gap">
-  <div><div class="eyebrow">LAB PROTOCOLS</div><h2>Controlled experiments</h2></div>
-  <a href="{{url_for('universe_public.experiments')}}">All experiments →</a>
-</section>
-<div class="public-compact-grid">
-  {% for p in universe_lab_projects %}
-  <a class="public-compact-card" href="{{url_for(p.endpoint)}}"><span>{{p.number}}</span><div><h3>{{p.title}}</h3><p>{{p.subtitle}}</p></div></a>
-  {% endfor %}
-</div>
-
 <section class="research-strip section-gap">
-  <div><div class="eyebrow">RESEARCH SYSTEMS</div><h2>MOR · Observer · Mesh · Geometry</h2><p>Deeper internal research systems are separated from the public testing flow but use the same laboratory backbone.</p></div>
-  <a class="button" href="{{url_for('universe_public.research')}}">Open Research →</a>
+  <div>
+    <div class="eyebrow">ONE SYSTEM, THREE DEPTHS</div>
+    <h2>Public → Lab → Research</h2>
+    <p>
+      Public tests minimize friction. Lab protocols add control.
+      Research systems expose MOR, Observer, Mesh, model geometry and unified datasets.
+    </p>
+  </div>
+  <div class="hero-actions compact-actions">
+    <a class="button" href="{{url_for('universe_lab.home')}}">Open Lab</a>
+    <a class="button" href="{{url_for('universe_public.research')}}">Research →</a>
+  </div>
 </section>
 
 {% if runs %}
 <section class="card recent-runs-public">
-  <div class="cardhead"><div><div class="eyebrow">YOUR SESSION</div><h2>Recent runs</h2></div><div class="toolbar">
-  {% if runs|selectattr("study_key","equalto","BOT_STRESS_V01")|selectattr("status","equalto","completed")|list|length >= 2 %}<a class="button" href="{{url_for('compare_models')}}">Compare models →</a>{% endif %}
-  <a class="button" href="{{url_for('universe_lab.data_home')}}">All data →</a></div></div>
-  <div class="tablewrap"><table><tr><th>Run</th><th>Study</th><th>Model</th><th>Status</th><th></th></tr>{% for r in runs %}<tr><td>{{r.id}}</td><td>{{r.study_key}}</td><td>{{r.model_label}}</td><td><span class="pill">{{r.status}}</span></td><td>
-  {% if r.study_key=="BOT_STRESS_V01" %}<a href="{{url_for('bot_result',run_id=r.id) if r.status=='completed' else url_for('bot_base',run_id=r.id)}}">open</a>
-  {% elif r.study_key=="HUMAN_AI_STATE_V1" %}<a href="{{url_for('hai_result',run_id=r.id) if r.status=='completed' else url_for('hai_human',run_id=r.id)}}">open</a>
-  {% elif r.study_key=="HISTORY_INTERVENTION_V01" %}<a href="{{url_for('history_probe.pair_result',pair_id=r.meta().get('pair_id')) if r.status=='completed' else url_for('history_probe.run_arm',run_id=r.id)}}">open</a>
-  {% elif r.study_key=="CD_GRP_V052" %}<a href="{{url_for('universe_grp.result',sid=r.meta().get('grp_session_id')) if r.status=='completed' else url_for('universe_grp.home')}}">open</a>
-  {% elif r.study_key=="MOR_MESH_FIELD_V07" %}<a href="{{url_for('universe_mesh.result',run_id=r.id)}}">open</a>{% endif %}
-  </td></tr>{% endfor %}</table></div>
+  <div class="cardhead">
+    <div><div class="eyebrow">YOUR SESSION</div><h2>Recent runs</h2></div>
+    <div class="toolbar">
+      {% if runs|selectattr("study_key","equalto","BOT_STRESS_V01")|selectattr("status","equalto","completed")|list|length >= 2 %}
+      <a class="button" href="{{url_for('compare_models')}}">Compare models →</a>
+      {% endif %}
+      <a class="button" href="{{url_for('universe_lab.data_home')}}">All data →</a>
+    </div>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <tr><th>Run</th><th>Study</th><th>Model</th><th>Status</th><th></th></tr>
+      {% for r in runs %}
+      <tr>
+        <td>{{r.id}}</td><td>{{r.study_key}}</td><td>{{r.model_label}}</td>
+        <td><span class="pill">{{r.status}}</span></td>
+        <td>
+          {% if r.study_key=="BOT_STRESS_V01" %}
+            <a href="{{url_for('bot_result',run_id=r.id) if r.status=='completed' else url_for('bot_base',run_id=r.id)}}">open</a>
+          {% elif r.study_key=="HUMAN_AI_STATE_V1" %}
+            <a href="{{url_for('hai_result',run_id=r.id) if r.status=='completed' else url_for('hai_human',run_id=r.id)}}">open</a>
+          {% elif r.study_key=="HISTORY_INTERVENTION_V01" %}
+            <a href="{{url_for('history_probe.pair_result',pair_id=r.meta().get('pair_id')) if r.status=='completed' else url_for('history_probe.run_arm',run_id=r.id)}}">open</a>
+          {% elif r.study_key=="CD_GRP_V052" %}
+            <a href="{{url_for('universe_grp.result',sid=r.meta().get('grp_session_id')) if r.status=='completed' else url_for('universe_grp.home')}}">open</a>
+          {% elif r.study_key=="MOR_MESH_FIELD_V07" %}
+            <a href="{{url_for('universe_mesh.result',run_id=r.id)}}">open</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
 </section>
 {% endif %}
 
-<div class="participant-note">{% if participant %}Anonymous participant: <b>{{participant.id}}</b>{% else %}Your anonymous participant ID is created when you start your first run.{% endif %}</div>
+<div class="participant-note">
+  {% if participant %}
+    Anonymous participant: <b>{{participant.id}}</b>
+  {% else %}
+    Your anonymous participant ID is created when you start your first run.
+  {% endif %}
+</div>
 {% endblock %}

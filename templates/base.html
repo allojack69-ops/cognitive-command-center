@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="uk">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -11,7 +11,7 @@
 <header>
   <div class="nav public-nav-shell">
     <a class="brand" href="{{url_for('index')}}">◉ UNIVERSE LAB</a>
-    <nav class="public-nav">
+    <nav class="public-nav" aria-label="Primary">
       <a href="{{url_for('universe_public.test_ai')}}">Test AI</a>
       <a href="{{url_for('universe_public.experiments')}}">Experiments</a>
       <a href="{{url_for('universe_lab.home')}}">Lab</a>
@@ -27,14 +27,25 @@
 </main>
 <footer>
   <div class="wrap public-footer">
-    <div><b>UNIVERSE LAB</b><span>Human × AI × State × History × Field</span></div>
-    <div class="footer-links"><a href="{{url_for('universe_lab.data_home')}}">Data</a><a href="{{url_for('admin')}}">Admin</a></div>
+    <div>
+      <b>UNIVERSE LAB</b>
+      <span>Human × AI × State × History × Field</span>
+    </div>
+    <div class="footer-links">
+      <a href="{{url_for('universe_public.experiments')}}">Experiments</a>
+      <a href="{{url_for('universe_public.research')}}">Research</a>
+      <a href="{{url_for('universe_lab.data_home')}}">Data</a>
+    </div>
   </div>
 </footer>
 <script>
 function copyFrom(id,btn){
  const el=document.getElementById(id);
- navigator.clipboard.writeText(el.value).then(()=>{const old=btn.textContent;btn.textContent='Скопійовано ✓';setTimeout(()=>btn.textContent=old,1400);});
+ navigator.clipboard.writeText(el.value).then(()=>{
+   const old=btn.textContent;
+   btn.textContent='Copied ✓';
+   setTimeout(()=>btn.textContent=old,1400);
+ });
 }
 </script>
 </body>

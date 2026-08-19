@@ -424,3 +424,158 @@ html{scroll-behavior:smooth}
   .funnel-total{text-align:left}
 }
 /* ===== Universe Lab Funnel + State Field Visual v1.4 END ===== */
+
+/* ===== Universe Lab Acrylic Background v1.5 START ===== */
+
+html {
+  background: #050911;
+}
+
+body {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(4,8,15,.50), rgba(3,7,13,.72) 45%, rgba(2,5,10,.88));
+}
+
+/* Global state-field background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -18px;
+  z-index: -2;
+  pointer-events: none;
+  background-image: url("/static/universe/universe_bg_acrylic.png");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: .42;
+  filter: saturate(1.02) contrast(1.04) brightness(.72);
+  transform: scale(1.02);
+}
+
+/* Acrylic veil: text remains readable while the field stays visible */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 14% 10%, rgba(20,116,205,.14), transparent 34%),
+    radial-gradient(circle at 84% 22%, rgba(16,166,217,.08), transparent 32%),
+    linear-gradient(180deg, rgba(4,8,15,.28), rgba(4,8,15,.52) 42%, rgba(3,6,12,.76));
+  backdrop-filter: blur(1.2px);
+  -webkit-backdrop-filter: blur(1.2px);
+}
+
+header {
+  background: rgba(4,8,14,.78);
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  border-bottom-color: rgba(107,180,255,.14);
+}
+
+footer {
+  background: rgba(4,8,14,.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Main panels become acrylic instead of opaque blocks */
+.card,
+.projectcard,
+.public-feature-card,
+.research-principle,
+.research-tools > a,
+.public-value-strip > div,
+.test-outcome-grid > div,
+.flow-steps > div,
+.test-choice-main,
+.analytics-kpis > div,
+.analytics-funnel-card,
+.funnel-stage,
+.notice {
+  background:
+    linear-gradient(145deg, rgba(13,23,36,.68), rgba(7,13,23,.58));
+  border-color: rgba(110,184,255,.18);
+  backdrop-filter: blur(15px) saturate(1.08);
+  -webkit-backdrop-filter: blur(15px) saturate(1.08);
+  box-shadow:
+    0 16px 42px rgba(0,0,0,.22),
+    inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+/* Hero is intentionally less boxed-in so it feels integrated with the field */
+.public-hero {
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(5,12,23,.36), rgba(5,10,18,.12));
+  border-radius: 28px;
+  padding-left: 26px;
+  padding-right: 26px;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.public-entry-hero {
+  max-width: 980px;
+}
+
+.research-hero {
+  max-width: 980px;
+}
+
+/* Keep content above the global pseudo-background */
+header,
+main,
+footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* Old v1.4 image-card blocks are no longer used */
+.state-field-visual {
+  display: none !important;
+}
+
+/* More contrast for code/data blocks over the photographic field */
+pre,
+.codebox,
+textarea {
+  background: rgba(3,8,15,.84) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Mobile: show less image detail and more acrylic for readability */
+@media (max-width: 700px) {
+  body::before {
+    opacity: .31;
+    background-position: 48% center;
+    filter: saturate(.92) contrast(1.02) brightness(.62);
+  }
+
+  body::after {
+    background:
+      linear-gradient(180deg, rgba(3,7,13,.48), rgba(3,7,13,.72) 48%, rgba(2,5,10,.90));
+  }
+
+  .public-hero {
+    border-radius: 22px;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .card,
+  .projectcard,
+  .public-feature-card,
+  .research-principle,
+  .research-tools > a {
+    background:
+      linear-gradient(145deg, rgba(10,19,31,.78), rgba(6,12,21,.70));
+  }
+}
+
+/* ===== Universe Lab Acrylic Background v1.5 END ===== */

@@ -1,0 +1,12 @@
+{
+  "version": "1.5",
+  "scope": "global_acrylic_state_field_background",
+  "db_schema_changes": false,
+  "routes_changed": false,
+  "background_asset": "static/universe/universe_bg_acrylic.png",
+  "standalone_visual_cards_removed": [
+    "/",
+    "/research"
+  ],
+  "backup": ".universe_lab_backup_v15_20260820-013113"
+}

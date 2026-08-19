@@ -1,0 +1,7 @@
+{
+  "version": "1.6",
+  "scope": "visual_background_tuning_only",
+  "db_schema_changes": false,
+  "routes_changed": false,
+  "backup": ".universe_lab_backup_v16_20260820-013638"
+}

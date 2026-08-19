@@ -579,3 +579,107 @@ textarea {
 }
 
 /* ===== Universe Lab Acrylic Background v1.5 END ===== */
+
+/* ===== Universe Lab Background Tune v1.6 START ===== */
+
+/* Stronger state-field presence while preserving a calm central reading zone. */
+body::before {
+  opacity: .56;
+  background-position: center center;
+  filter: saturate(1.12) contrast(1.10) brightness(.80);
+}
+
+/* Darker centre, slightly clearer edge-field. */
+body::after {
+  background:
+    radial-gradient(ellipse at 50% 36%,
+      rgba(2,6,12,.70) 0%,
+      rgba(3,7,14,.52) 34%,
+      rgba(3,7,14,.26) 62%,
+      rgba(3,7,14,.10) 100%),
+    radial-gradient(circle at 8% 22%,
+      rgba(26,126,224,.17), transparent 33%),
+    radial-gradient(circle at 92% 32%,
+      rgba(24,170,222,.12), transparent 31%),
+    linear-gradient(180deg,
+      rgba(3,7,13,.18),
+      rgba(3,7,13,.42) 48%,
+      rgba(2,5,10,.72));
+  backdrop-filter: blur(.7px);
+  -webkit-backdrop-filter: blur(.7px);
+}
+
+/* Slightly more transparent acrylic surfaces so the field reads through them. */
+.card,
+.projectcard,
+.public-feature-card,
+.research-principle,
+.research-tools > a,
+.public-value-strip > div,
+.test-outcome-grid > div,
+.flow-steps > div,
+.test-choice-main,
+.analytics-kpis > div,
+.analytics-funnel-card,
+.funnel-stage,
+.notice {
+  background:
+    linear-gradient(145deg,
+      rgba(12,22,35,.61),
+      rgba(6,12,22,.51));
+  border-color: rgba(116,190,255,.20);
+  backdrop-filter: blur(14px) saturate(1.10);
+  -webkit-backdrop-filter: blur(14px) saturate(1.10);
+}
+
+/* Preserve stronger opacity for raw data/code blocks. */
+pre,
+.codebox,
+textarea,
+.tablewrap {
+  background-color: rgba(3,8,15,.78);
+}
+
+/* Hero copy gets a quiet central veil without looking like a boxed card. */
+.public-hero {
+  background:
+    radial-gradient(ellipse at 44% 40%,
+      rgba(4,10,19,.42),
+      rgba(4,10,19,.18) 62%,
+      rgba(4,10,19,.06));
+}
+
+/* Mobile tuning: brighter than v1.5, still readable. */
+@media (max-width: 700px) {
+  body::before {
+    opacity: .40;
+    background-position: 47% center;
+    filter: saturate(1.04) contrast(1.08) brightness(.70);
+  }
+
+  body::after {
+    background:
+      radial-gradient(ellipse at 50% 30%,
+        rgba(2,6,12,.78) 0%,
+        rgba(3,7,13,.62) 40%,
+        rgba(3,7,13,.36) 72%,
+        rgba(2,5,10,.18) 100%),
+      linear-gradient(180deg,
+        rgba(3,7,13,.26),
+        rgba(3,7,13,.60) 54%,
+        rgba(2,5,10,.82));
+  }
+
+  .card,
+  .projectcard,
+  .public-feature-card,
+  .research-principle,
+  .research-tools > a {
+    background:
+      linear-gradient(145deg,
+        rgba(10,19,31,.70),
+        rgba(5,11,20,.63));
+  }
+}
+
+/* ===== Universe Lab Background Tune v1.6 END ===== */

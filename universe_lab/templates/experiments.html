@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Experiments · Universe Lab{% endblock %}
+{% block content %}
+<section class="public-hero compact-hero"><div class="eyebrow">EXPERIMENT LIBRARY</div><h1>One laboratory.<br>Different levels of intervention.</h1><p class="public-lead">Public tests are optimized for participation. Lab protocols are more controlled. Research systems expose deeper engines and field infrastructure.</p></section>
+
+<section class="experiment-section"><div class="section-head"><div><div class="eyebrow">PUBLIC</div><h2>Tests anyone can run</h2></div></div><div class="projectgrid experiment-grid">{% for p in public_projects %}<a class="projectcard" href="{{url_for(p.endpoint)}}"><div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div><h2>{{p.title}}</h2><p>{{p.subtitle}}</p><div class="projectkind">{{p.kind}} · {{p.cta}} →</div></a>{% endfor %}</div></section>
+
+<section class="experiment-section"><div class="section-head"><div><div class="eyebrow">CONTROLLED LAB</div><h2>Protocols for deeper comparison</h2></div></div><div class="projectgrid experiment-grid">{% for p in lab_projects %}<a class="projectcard" href="{{url_for(p.endpoint)}}"><div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div><h2>{{p.title}}</h2><p>{{p.subtitle}}</p><div class="projectkind">{{p.kind}} · {{p.cta}} →</div></a>{% endfor %}</div></section>
+
+<section class="experiment-section"><div class="section-head"><div><div class="eyebrow">RESEARCH SYSTEMS</div><h2>Engines and field infrastructure</h2></div><a href="{{url_for('universe_public.research')}}">Research view →</a></div><div class="projectgrid experiment-grid">{% for p in research_projects %}<a class="projectcard research-card" href="{{url_for(p.endpoint)}}"><div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div><h2>{{p.title}}</h2><p>{{p.subtitle}}</p><div class="projectkind">{{p.kind}} · {{p.cta}} →</div></a>{% endfor %}</div></section>
+{% endblock %}

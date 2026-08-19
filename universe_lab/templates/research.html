@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Research · Universe Lab{% endblock %}
+{% block content %}
+<section class="public-hero compact-hero research-hero"><div class="eyebrow">RESEARCH LAYER</div><h1>From runs to dynamics.</h1><p class="public-lead">The public layer collects standardized observations. The research layer studies invariance, context sensitivity, history dependence, model geometry and real field transitions.</p></section>
+
+<div class="research-principle-grid">
+  <div class="research-principle"><span>STATE</span><b>Z<sub>t</sub> = (S<sub>t</sub>, R<sub>t</sub>, M<sub>t</sub>)</b><p>Structure, relation/context and causally relevant memory.</p></div>
+  <div class="research-principle"><span>REALIZED EFFECT</span><b>Φ<sub>t</sub> = Q(S,R,M,u,E)</b><p>Function is treated as an effect of configuration and interaction, not an isolated coordinate.</p></div>
+  <div class="research-principle"><span>DYNAMICS</span><b>Z<sub>t</sub> → Φ<sub>t</sub> → Z<sub>t+1</sub></b><p>Experiments probe which interventions move the next state and which properties remain invariant.</p></div>
+</div>
+
+<section class="section-head section-gap"><div><div class="eyebrow">SYSTEMS</div><h2>Research engines</h2></div></section>
+<div class="projectgrid research-system-grid">{% for p in research_projects %}<a class="projectcard research-card" href="{{url_for(p.endpoint)}}"><div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div><h2>{{p.title}}</h2><p>{{p.subtitle}}</p><div class="projectkind">{{p.kind}} →</div></a>{% endfor %}</div>
+
+<section class="research-tools section-gap">
+  <a href="{{url_for('compare_models')}}"><span>MODEL COMPARISON</span><h3>Compare completed Bot Stress runs</h3><p>Agreement, divergence, transitions and formal response errors across models.</p></a>
+  <a href="{{url_for('form_dashboard.presentation_geometry')}}"><span>PRESENTATION GEOMETRY</span><h3>Core ↔ presentation invariance</h3><p>Separate deep preserved axes from presentation-sensitive behavior.</p></a>
+  <a href="{{url_for('history_probe.compare')}}"><span>HISTORY COMPARISON</span><h3>Controlled history dependence</h3><p>Compare model behavior under matched targets with different controlled prior history.</p></a>
+  <a href="{{url_for('universe_lab.data_home')}}"><span>UNIFIED DATA</span><h3>Runs, datasets and system outputs</h3><p>One data backbone across Human–AI, GRP, MOR and field systems.</p></a>
+</section>
+{% endblock %}

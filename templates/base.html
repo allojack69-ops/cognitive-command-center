@@ -1,26 +1,41 @@
 <!doctype html>
 <html lang="uk">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block title %}Universe Laboratory{% endblock %}</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080b10">
+<title>{% block title %}Universe Lab{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
 </head>
 <body>
-<header><div class="nav">
-<a class="brand" href="{{url_for('index')}}">◉ UNIVERSE LAB</a>
-<nav><a href="{{url_for('universe_lab.home')}}">Laboratory</a><a href="{{url_for('benchmarks')}}">Benchmarks</a><a href="{{url_for('admin')}}">Admin</a></nav>
-</div></header>
+<header>
+  <div class="nav public-nav-shell">
+    <a class="brand" href="{{url_for('index')}}">◉ UNIVERSE LAB</a>
+    <nav class="public-nav">
+      <a href="{{url_for('universe_public.test_ai')}}">Test AI</a>
+      <a href="{{url_for('universe_public.experiments')}}">Experiments</a>
+      <a href="{{url_for('universe_lab.home')}}">Lab</a>
+      <a href="{{url_for('universe_public.research')}}">Research</a>
+    </nav>
+  </div>
+</header>
 <main class="wrap">
 {% with messages=get_flashed_messages(with_categories=true) %}
 {% for cat,msg in messages %}<div class="flash {{cat}}">{{msg}}</div>{% endfor %}
 {% endwith %}
 {% block content %}{% endblock %}
 </main>
-<footer><div class="wrap muted small">ВСЕСВІТ · unified research laboratory · Human × AI × State × History × Field</div></footer>
+<footer>
+  <div class="wrap public-footer">
+    <div><b>UNIVERSE LAB</b><span>Human × AI × State × History × Field</span></div>
+    <div class="footer-links"><a href="{{url_for('universe_lab.data_home')}}">Data</a><a href="{{url_for('admin')}}">Admin</a></div>
+  </div>
+</footer>
 <script>
 function copyFrom(id,btn){
  const el=document.getElementById(id);
  navigator.clipboard.writeText(el.value).then(()=>{const old=btn.textContent;btn.textContent='Скопійовано ✓';setTimeout(()=>btn.textContent=old,1400);});
 }
 </script>
-</body></html>
+</body>
+</html>

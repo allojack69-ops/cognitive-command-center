@@ -1,10 +1,11 @@
-{% extends "base.html" %}{% block title %}Universe Laboratory{% endblock %}
+{% extends "base.html" %}
+{% block title %}Laboratory · Universe Lab{% endblock %}
 {% block content %}
-<section class="hero labhero"><div class="eyebrow">ВСЕСВІТ · UNIFIED RESEARCH LABORATORY</div>
-<h1>Одна лабораторія.<br>Всі наші експерименти.</h1>
-<p>Human–AI, cognitive dynamics, model comparison, causal history interventions, observer engines і real network field tests — в одному Research HQ.</p></section>
+<section class="public-hero compact-hero"><div class="eyebrow">LAB OPERATIONS</div><h1>Command Center.</h1><p class="public-lead">Operational view of the unified laboratory: public experiments, controlled protocols, research engines and shared data.</p><div class="hero-actions"><a class="button primary" href="{{url_for('universe_public.test_ai')}}">Public test entry →</a><a class="button" href="{{url_for('universe_lab.data_home')}}">Unified data</a></div></section>
 <div class="labstats"><div><b>{{summary.projects}}</b><span>research modules</span></div><div><b>{{summary.human_people}}</b><span>participants ≥1 completed</span></div><div><b>{{summary.completed_runs}}</b><span>completed runs</span></div><div><b>{{summary.grp_completed}}</b><span>GRP completed</span></div></div>
-<div class="projectgrid">{% for p in projects %}<a class="projectcard" href="{{url_for(p.endpoint)}}"><div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div><h2>{{p.title}}</h2><p>{{p.subtitle}}</p><div class="projectkind">{{p.kind}}</div></a>{% endfor %}</div>
-<section class="card"><div class="cardhead"><h2>Unified data layer</h2><a class="button" href="{{url_for('universe_lab.data_home')}}">Open data →</a></div>
-<p class="muted">New GRP sessions and MOR Mesh field runs use the same participant/run backbone as Command Center. Dataset engines are stored as DATASET runs and excluded from human participant counts.</p></section>
+
+<section class="section-head"><div><div class="eyebrow">ALL MODULES</div><h2>Laboratory map</h2></div><a href="{{url_for('universe_public.experiments')}}">Experiment library →</a></section>
+<div class="projectgrid">{% for p in projects %}<a class="projectcard {% if p.audience=='research' %}research-card{% endif %}" href="{{url_for(p.endpoint)}}"><div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div><h2>{{p.title}}</h2><p>{{p.subtitle}}</p><div class="projectkind">{{p.kind}} · {{p.audience}}</div></a>{% endfor %}</div>
+
+<section class="data-note section-gap"><div><h3>Unified data layer</h3><p>GRP sessions and MOR Mesh field runs use the same participant/run backbone as Command Center. Dataset engines are stored as system runs and excluded from human participant counts.</p></div><a href="{{url_for('universe_lab.data_home')}}">Open data →</a></section>
 {% endblock %}

@@ -1,0 +1,13 @@
+{
+  "version": "1.1",
+  "layer": "public-lab-research",
+  "root": "public entry",
+  "routes_added": [
+    "/test-ai",
+    "/experiments",
+    "/research"
+  ],
+  "existing_routes_preserved": true,
+  "database_schema_changed": false,
+  "backup": ".universe_lab_backup_public_v11_20260820-005512"
+}

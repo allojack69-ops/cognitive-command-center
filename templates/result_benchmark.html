@@ -324,6 +324,17 @@ OPPOSITE ✕
 
 <div class="toolbar">
 
+{% if packdata.analysis_type == "boundary_stability" %}
+<a class="button"
+   href="{{url_for(
+      'stability_compare.compare',
+      pack_id=pack.id
+   )}}">
+Boundary Stability →
+</a>
+{% endif %}
+
+
 <a class="button"
    href="{{url_for('benchmark_compare.compare', pack_id=pack.id)}}">
 ⇄ Порівняти моделі

@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="eyebrow">
+BOUNDARY STABILITY TEST
+</div>
+
+<h1>{{pack.name}}</h1>
+
+<p class="muted">
+Participant: {{participant_label}}
+</p>
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>{{summary.models}}</b>
+<span>models / runs</span>
+</div>
+
+<div class="metric">
+<b>{{summary.axes}}</b>
+<span>latent axes</span>
+</div>
+
+<div class="metric">
+<b>{{summary.consensus_axes}}</b>
+<span>cross-model consensus axes</span>
+</div>
+
+<div class="metric">
+<b>{{summary.split_axes}}</b>
+<span>model-specific boundary axes</span>
+</div>
+
+<div class="metric">
+<b>
+{% if summary.mean_stability is not none %}
+{{summary.mean_stability}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>mean within-model axis stability</span>
+</div>
+
+<div class="metric">
+<b>
+{% if summary.mean_pairwise is not none %}
+{{summary.mean_pairwise}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>pairwise modal-axis agreement</span>
+</div>
+
+</div>
+
+
+<section class="card">
+
+<div class="eyebrow">
+MODEL STABILITY
+</div>
+
+<h2>Чи переживає межа перефразування та A/B flip</h2>
+
+<div class="modelcompare">
+
+{% for m in cards %}
+
+<div class="modelcard">
+
+<div class="eyebrow">
+{{m.provider}}
+</div>
+
+<h3>{{m.model}}</h3>
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>{{m.stable}}</b>
+<span>strict stable axes</span>
+</div>
+
+<div class="metric">
+<b>
+{% if m.stability_pct is not none %}
+{{m.stability_pct}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>axis stability</span>
+</div>
+
+<div class="metric">
+<b>{{m.label_robust}}</b>
+<span>A/B-flip robust axes</span>
+</div>
+
+<div class="metric">
+<b>
+{% if m.consistency_pct is not none %}
+{{m.consistency_pct}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>item→axis consistency</span>
+</div>
+
+<div class="metric">
+<b>
+{{m.match_n}} /
+{{m.abstain_n}} /
+{{m.opposite_n}}
+</b>
+<span>MATCH / ABSTAIN / OPPOSITE</span>
+</div>
+
+<div class="metric">
+<b>
+{{m.conf_match if m.conf_match is not none else "—"}}
+/
+{{m.conf_abstain if m.conf_abstain is not none else "—"}}
+/
+{{m.conf_opposite if m.conf_opposite is not none else "—"}}
+</b>
+<span>confidence M / A / O</span>
+</div>
+
+</div>
+
+<a href="{{url_for(
+    'benchmark_result',
+    run_id=m.run_id
+)}}">
+відкрити raw run →
+</a>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="eyebrow">
+LATENT AXIS MAP
+</div>
+
+<h2>Геометрія нормативних меж</h2>
+
+<p class="muted">
+Кожна вісь повторена тричі з іншою поверхневою формою.
+У кожній осі reference сторона міняє A↔B.
+Якщо MATCH/ABSTAIN/OPPOSITE зберігається —
+ми бачимо стабільність відношення, а не простий label bias.
+</p>
+
+{% for row in axis_rows %}
+
+<div class="modelcard" style="margin-top:18px">
+
+<div class="eyebrow">
+{{row.axis}}
+</div>
+
+<h3>{{row.reference_label}}</h3>
+
+<p>
+Cross-model:
+{% if row.cross_class == "MODEL_SPLIT" %}
+<span class="check-fail">MODEL SPLIT</span>
+{% elif row.cross_class == "MATCH" %}
+<span class="check-pass">MATCH CONSENSUS</span>
+{% else %}
+<span class="pill">{{row.cross_class}} CONSENSUS</span>
+{% endif %}
+</p>
+
+{% for cell in row.cells %}
+
+<div class="card" style="margin-top:12px">
+
+<b>{{cell.model}}</b>
+
+<p>
+Modal relation:
+{% if cell.modal == "MATCH" %}
+<span class="check-pass">MATCH</span>
+{% elif cell.modal == "OPPOSITE" %}
+<span class="check-fail">OPPOSITE</span>
+{% else %}
+<span class="pill">ABSTAIN</span>
+{% endif %}
+</p>
+
+<p class="small">
+{% if cell.stable %}
+✓ STRICT STABLE
+{% else %}
+⚠ PRESENTATION-SENSITIVE
+{% endif %}
+
+·
+
+{% if cell.label_robust %}
+✓ A/B ROBUST
+{% else %}
+A/B robustness not established
+{% endif %}
+</p>
+
+{% for v in cell.variants %}
+
+<div class="tiny muted" style="margin-top:6px">
+V{{v.variant}}
+· ref {{v.reference_choice}}
+· model {{v.choice}}
+· <b>{{v.relation}}</b>
+· conf {{v.confidence if v.confidence is not none else "—"}}
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endfor %}
+
+</section>
+
+
+<section class="card">
+
+<h2>Pairwise modal-axis agreement</h2>
+
+<div class="tablewrap">
+
+<table>
+
+<tr>
+<th>Model A</th>
+<th>Model B</th>
+<th>Same axis relation</th>
+<th>Agreement</th>
+</tr>
+
+{% for p in pairwise %}
+
+<tr>
+<td>{{p.left}}</td>
+<td>{{p.right}}</td>
+<td>{{p.same}} / {{p.total}}</td>
+<td>
+{% if p.rate is not none %}
+<b>{{p.rate}}%</b>
+{% else %}
+—
+{% endif %}
+</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="eyebrow">
+INTERPRETATION LIMIT
+</div>
+
+<p>{{packdata.caveat}}</p>
+
+<p class="muted">
+Навіть висока стабільність тут не доводить існування
+конкретної внутрішньої neural weight або морального модуля.
+Вона показує відтворювану black-box поведінкову структуру,
+яку потім треба перевіряти на інших задачах і моделях.
+</p>
+
+</section>
+
+
+<div class="toolbar">
+
+<a class="button"
+href="{{url_for(
+    'benchmark_new',
+    pack_id=pack.id
+)}}">
++ Ще одна модель
+</a>
+
+<a class="button"
+href="{{url_for('benchmarks')}}">
+← Benchmark Lab
+</a>
+
+</div>
+
+{% endblock %}

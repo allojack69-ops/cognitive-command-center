@@ -33,7 +33,8 @@ init_db()
 def seed_benchmarks():
     seed_files=[
         BASE/"data"/"demo_benchmark.json",
-        BASE/"data"/"moral_machine_global_direction_v1.json"
+        BASE/"data"/"moral_machine_global_direction_v1.json",
+        BASE/"data"/"moral_machine_boundary_stability_v1.json"
     ]
 
     with SessionLocal() as db:
@@ -135,6 +136,9 @@ seed_benchmarks()
 
 from benchmark_compare import bp as benchmark_compare_bp
 app.register_blueprint(benchmark_compare_bp)
+
+from stability_compare import bp as stability_compare_bp
+app.register_blueprint(stability_compare_bp)
 
 def current_participant(db):
     pid=session.get("participant_id")
@@ -921,13 +925,32 @@ def benchmark_new(pack_id):
             run=Run(id=new_run_id(),participant_id=p.id,study_key="BENCHMARK:"+pack_id,protocol_version="CMD1",
                     provider=request.form.get("provider","Other")[:80],model_label=request.form.get("model_label","unknown")[:160],
                     account_alias=request.form.get("account_alias","")[:120] or None,personalization=request.form.get("personalization","unknown"))
-            run.set_meta({"benchmark_id":pack_id}); db.add(run); db.commit()
+            order=[x["id"] for x in pack.pack().get("items",[])]
+            secrets.SystemRandom().shuffle(order)
+            run.set_meta({
+                "benchmark_id":pack_id,
+                "item_order":order
+            })
+            db.add(run); db.commit()
             return redirect(url_for("benchmark_run",run_id=run.id))
         return render_template("new_run.html",mode="benchmark",pack=pack)
 
-def benchmark_prompt(pack):
+def benchmark_prompt(pack, order=None):
     blocks=[]
-    for x in pack["items"]:
+    items=pack["items"]
+
+    if order:
+        lookup={x["id"]:x for x in items}
+        ordered=[
+            lookup[iid]
+            for iid in order
+            if iid in lookup
+        ]
+
+        if len(ordered)==len(items):
+            items=ordered
+
+    for x in items:
         opts=" | ".join(f"{k}: {v}" for k,v in x["options"].items())
         blocks.append(f"{x['id']}. {x['text']}\nOPTIONS: {opts}")
     return """AI BENCHMARK RUN
@@ -952,7 +975,10 @@ def benchmark_run(run_id):
         p=current_participant(db)
         if run.participant_id!=p.id and not session.get("admin"): abort(403)
         pack_id=run.meta()["benchmark_id"]; packrow=db.get(BenchmarkPack,pack_id); pack=packrow.pack()
-        prompt=benchmark_prompt(pack)
+        prompt=benchmark_prompt(
+            pack,
+            run.meta().get("item_order")
+        )
         if request.method=="POST":
             data,err=parse_json_field(request.form.get("json"))
             ans=data.get("answers") if not err and isinstance(data,dict) else None
@@ -960,8 +986,15 @@ def benchmark_run(run_id):
             if not isinstance(ans,dict) or set(ans)!=ids: err=f"Потрібно рівно {len(ids)} benchmark-відповідей."
             if not err:
                 for iid,obj in ans.items():
-                    if obj.get("choice") not in ("A","B","C") or not isinstance(obj.get("confidence"),(int,float)):
-                        err=f"{iid}: некоректна відповідь."; break
+                    c=obj.get("confidence")
+
+                    if (
+                        obj.get("choice") not in ("A","B","C")
+                        or not isinstance(c,(int,float))
+                        or not 50 <= c <= 100
+                    ):
+                        err=f"{iid}: choice A/B/C, confidence 50..100."
+                        break
             if err:
                 flash(err,"error")
             else:

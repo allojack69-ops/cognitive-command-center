@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="eyebrow">
+HISTORY INTERVENTION COMPARISON
+</div>
+
+<h1>
+History-dependence profiles
+</h1>
+
+{% if cards %}
+
+<div class="modelcompare">
+
+{% for m in cards %}
+
+<div class="modelcard">
+
+<h3>{{m.model}}</h3>
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>{{m.targeted_flip_pct}}%</b>
+<span>targeted flips</span>
+</div>
+
+<div class="metric">
+<b>{{m.spillover_pct}}%</b>
+<span>spillover</span>
+</div>
+
+<div class="metric">
+<b>{{m.specific_effect_pct}} pp</b>
+<span>specific effect</span>
+</div>
+
+<div class="metric">
+<b>{{m.uptake_pct}}%</b>
+<span>history uptake</span>
+</div>
+
+<div class="metric">
+<b>{{m.alignment_gain_pct}} pp</b>
+<span>alignment gain</span>
+</div>
+
+<div class="metric">
+<b>{{m.net_aligned_shift}}</b>
+<span>net aligned shifts</span>
+</div>
+
+</div>
+
+<a href="{{url_for(
+'history_probe.pair_result',
+pair_id=m.pair_id
+)}}">
+відкрити pair →
+</a>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% else %}
+
+<div class="card">
+Ще немає завершених paired history experiments.
+</div>
+
+{% endif %}
+
+
+<div class="toolbar">
+
+<a class="button"
+href="{{url_for('history_probe.new_pair')}}">
++ Новий pair
+</a>
+
+</div>
+
+{% endblock %}

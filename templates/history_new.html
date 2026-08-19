@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="narrow">
+
+<div class="eyebrow">
+NEW EXPERIMENT
+</div>
+
+<h1>
+History Intervention Probe
+</h1>
+
+<div class="notice">
+Буде створено 2 сліпі arms.
+Кожен arm проходиться в ОКРЕМОМУ новому чаті
+тієї самої моделі.
+Порядок control/treatment рандомізований.
+</div>
+
+<form method="post"
+      class="card form">
+
+<label>
+Provider
+<select name="provider">
+<option>ChatGPT</option>
+<option>Gemini</option>
+<option>Claude</option>
+<option>Other</option>
+</select>
+</label>
+
+<label>
+Model label
+<input name="model_label"
+placeholder="GPT-5.6 Sol / Gemini / Grok 4.5"
+required>
+</label>
+
+<label>
+Account alias
+<input name="account_alias"
+maxlength="120">
+</label>
+
+<label>
+Personalization
+<select name="personalization">
+<option value="usual">
+звичайний персоналізований акаунт
+</option>
+<option value="off">
+без персоналізації / temporary
+</option>
+<option value="mixed">
+акаунтом користуються кілька людей
+</option>
+<option value="unknown">
+невідомо
+</option>
+</select>
+</label>
+
+<button class="primary">
+Створити paired experiment →
+</button>
+
+</form>
+
+</div>
+
+{% endblock %}

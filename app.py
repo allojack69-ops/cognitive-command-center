@@ -146,6 +146,9 @@ app.register_blueprint(form_api_bp)
 from form_dashboard import bp as form_dashboard_bp
 app.register_blueprint(form_dashboard_bp)
 
+from history_probe import bp as history_probe_bp
+app.register_blueprint(history_probe_bp)
+
 def current_participant(db):
     pid=session.get("participant_id")
     p=db.get(Participant,pid) if pid else None

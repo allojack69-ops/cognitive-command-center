@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="eyebrow">
+HISTORY PAIR COMPLETE · {{pair_id}}
+</div>
+
+<h1>
+{{model_label}}
+</h1>
+
+<p class="muted">
+Поточний target був ідентичним.
+Змінювалась лише попередня session history.
+</p>
+
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>
+{{m.targeted_flip_n}}/{{m.targeted_n}}
+</b>
+<span>targeted choice flips</span>
+</div>
+
+<div class="metric">
+<b>
+{{"%.1f"|format(m.targeted_flip_rate*100)}}%
+</b>
+<span>targeted history effect</span>
+</div>
+
+<div class="metric">
+<b>
+{{"%.1f"|format(m.spillover_rate*100)}}%
+</b>
+<span>negative-control spillover</span>
+</div>
+
+<div class="metric">
+<b>
+{{"%.1f"|format(m.specific_history_effect*100)}} pp
+</b>
+<span>specific history effect</span>
+</div>
+
+<div class="metric">
+<b>
+{{"%.1f"|format(m.treatment_uptake_rate*100)}}%
+</b>
+<span>treatment directional uptake</span>
+</div>
+
+<div class="metric">
+<b>
+{{"%.1f"|format(m.alignment_gain*100)}} pp
+</b>
+<span>alignment gain vs control</span>
+</div>
+
+<div class="metric">
+<b>
+{{m.net_aligned_shift}}
+</b>
+<span>net history-aligned shifts</span>
+</div>
+
+<div class="metric">
+<b>
+{{m.target_mean_abs_conf_delta or "—"}}
+</b>
+<span>mean |Δ confidence| targeted</span>
+</div>
+
+</div>
+
+
+<section class="card">
+
+<div class="eyebrow">
+ITEM MAP
+</div>
+
+<h2>
+Control history ↔ treatment history
+</h2>
+
+<div class="tablewrap">
+
+<table>
+
+<tr>
+<th>Item</th>
+<th>Class</th>
+<th>Expected</th>
+<th>Control</th>
+<th>Treatment</th>
+<th>Shift</th>
+</tr>
+
+{% for x in m.rows %}
+
+<tr>
+
+<td>{{x.item_id}}</td>
+
+<td>
+{% if x.targeted %}
+TARGET
+{% else %}
+NEG CTRL
+{% endif %}
+</td>
+
+<td>
+{{x.expected or "—"}}
+</td>
+
+<td>
+{{x.control_choice or "—"}}
+</td>
+
+<td>
+{{x.treatment_choice or "—"}}
+</td>
+
+<td>
+{% if x.flipped %}
+<b>YES</b>
+{% else %}
+NO
+{% endif %}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<div class="eyebrow">
+INTERPRETATION
+</div>
+
+<p>
+Операційно ми вимірюємо:
+</p>
+
+<p>
+<b>
+H&lt;t</sub> → Φ<sub>t</sub>
+</b>
+</p>
+
+<p class="muted">
+Це history dependence за однакового target prompt.
+У закритій chat-системі не слід автоматично
+ототожнювати цей ефект із окремим внутрішнім
+memory module.
+</p>
+
+</section>
+
+
+<div class="toolbar">
+
+<a class="button"
+href="{{url_for('history_probe.new_pair')}}">
++ Інша модель
+</a>
+
+<a class="button"
+href="{{url_for('history_probe.compare')}}">
+Порівняти history profiles →
+</a>
+
+</div>
+
+{% endblock %}

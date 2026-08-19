@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="eyebrow">
+HISTORY INTERVENTION · ARM {{arm_index + 1}} / 2
+</div>
+
+<h1>
+{{run.model_label}}
+</h1>
+
+<div class="notice">
+
+<b>ВАЖЛИВО:</b>
+
+цей arm починай у
+<b>НОВОМУ звичайному чаті</b>.
+
+1. Скопіюй History Packet.<br>
+2. Дочекайся відповіді <b>OK</b>.<br>
+3. У <b>ТОМУ САМОМУ чаті</b>
+встав Target Prompt.<br>
+4. JSON із другого кроку встав сюди.
+
+Не перенось чат між arms.
+
+</div>
+
+
+<div class="split">
+
+<section class="card">
+
+<div class="cardhead">
+
+<h2>
+1 · History Packet
+</h2>
+
+<button type="button"
+onclick="copyFrom('history-prompt',this)">
+Скопіювати
+</button>
+
+</div>
+
+<textarea
+id="history-prompt"
+class="prompt"
+readonly>{{primer}}</textarea>
+
+</section>
+
+
+<section class="card">
+
+<div class="cardhead">
+
+<h2>
+2 · Target Prompt
+</h2>
+
+<button type="button"
+onclick="copyFrom('target-prompt',this)">
+Скопіювати
+</button>
+
+</div>
+
+<textarea
+id="target-prompt"
+class="prompt"
+readonly>{{target_prompt}}</textarea>
+
+</section>
+
+</div>
+
+
+<section class="card">
+
+<h2>
+3 · Встав JSON
+</h2>
+
+<form method="post">
+
+<textarea
+name="json"
+class="jsonbox"
+placeholder='{"answers":{...}}'
+required>{{json_value}}</textarea>
+
+<button class="primary">
+Зберегти arm →
+</button>
+
+</form>
+
+<p class="muted small">
+Validator вимагає рівно 8 відповідей,
+A/B/C і confidence 50..100.
+</p>
+
+</section>
+
+{% endblock %}

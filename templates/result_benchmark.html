@@ -1,7 +1,177 @@
-{% extends "base.html" %}{% block content %}
-<div class="eyebrow">BENCHMARK COMPLETE · {{run.id}}</div><h1>{{run.model_label}} ↔ {{pack.name}}</h1>
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="eyebrow">
+EXTERNAL BENCHMARK COMPLETE · {{run.id}}
+</div>
+
+<h1>{{run.model_label}} ↔ {{pack.name}}</h1>
+
+<p class="muted">
+{{packdata.source_name or ""}}
+</p>
+
 <div class="metricgrid">
-<div class="metric"><b>{{m.mean_human_support or "—"}}</b><span>mean human support for bot choice</span></div>
-<div class="metric"><b>{{"%.0f"|format(m.modal_agreement_rate*100) if m.modal_agreement_rate is not none else "—"}}%</b><span>agreement with human modal choice</span></div>
-</div><section class="card"><table><tr><th>Item</th><th>Bot</th><th>Human support</th><th>Human modal</th></tr>
-{% for x in m.rows %}<tr><td>{{x.item_id}}</td><td>{{x.choice}}</td><td>{{"%.1f"|format(x.human_support*100)}}%</td><td>{{x.modal_choice}}</td></tr>{% endfor %}</table></section>{% endblock %}
+
+{% if m.reference_items_n %}
+
+<div class="metric">
+<b>{{m.reference_agreement_n}}/{{m.reference_items_n}}</b>
+<span>agreement with published reference direction</span>
+</div>
+
+<div class="metric">
+<b>{{"%.0f"|format(m.reference_agreement_rate*100)}}%</b>
+<span>directional alignment</span>
+</div>
+
+{% endif %}
+
+{% if m.distribution_items_n %}
+
+<div class="metric">
+<b>{{m.mean_human_support if m.mean_human_support is not none else "—"}}</b>
+<span>mean human support for model choice</span>
+</div>
+
+<div class="metric">
+<b>
+{{"%.0f"|format(m.modal_agreement_rate*100)
+  if m.modal_agreement_rate is not none else "—"}}%
+</b>
+<span>agreement with human modal choice</span>
+</div>
+
+{% endif %}
+
+<div class="metric">
+<b>
+{{"%.0f"|format(m.abstention_rate*100)
+  if m.abstention_rate is not none else "—"}}%
+</b>
+<span>C / abstention rate</span>
+</div>
+
+<div class="metric">
+<b>{{m.items_n}}</b>
+<span>items compared</span>
+</div>
+
+</div>
+
+
+{% if packdata.caveat %}
+
+<section class="card">
+<div class="eyebrow">INTERPRETATION LIMIT</div>
+<h2>Що саме вимірює цей pack</h2>
+<p>{{packdata.caveat}}</p>
+
+{% if packdata.source_sample_note %}
+<p class="muted">{{packdata.source_sample_note}}</p>
+{% endif %}
+
+{% if pack.source_url %}
+<a href="{{pack.source_url}}" target="_blank" rel="noopener">
+Джерело дослідження →
+</a>
+{% endif %}
+</section>
+
+{% endif %}
+
+
+<section class="card">
+
+<h2>Item-level comparison</h2>
+
+<div class="tablewrap">
+
+<table>
+
+<tr>
+<th>Item</th>
+<th>Dimension</th>
+<th>Model</th>
+<th>Reference</th>
+<th>Match</th>
+<th>Confidence</th>
+<th>Human support</th>
+</tr>
+
+{% for x in m.rows %}
+
+<tr>
+
+<td><b>{{x.item_id}}</b></td>
+
+<td>{{x.dimension or "—"}}</td>
+
+<td>
+<div class="choice-big">{{x.choice}}</div>
+</td>
+
+<td>
+{% if x.reference_choice %}
+<b>{{x.reference_choice}}</b>
+<div class="tiny muted">{{x.reference_label or ""}}</div>
+{% elif x.modal_choice %}
+{{x.modal_choice}}
+{% else %}
+—
+{% endif %}
+</td>
+
+<td>
+{% if x.reference_agree is not none %}
+    {% if x.reference_agree %}
+    <span class="check-pass">YES ✓</span>
+    {% else %}
+    <span class="check-fail">NO ✕</span>
+    {% endif %}
+{% elif x.modal_agree is not none %}
+    {{ "YES" if x.modal_agree else "NO" }}
+{% else %}
+—
+{% endif %}
+</td>
+
+<td>
+{{x.confidence if x.confidence is not none else "—"}}
+</td>
+
+<td>
+{% if x.human_support is not none %}
+{{"%.1f"|format(x.human_support*100)}}%
+{% else %}
+—
+{% endif %}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<div class="toolbar">
+
+<a class="button"
+   href="{{url_for('benchmark_new',pack_id=pack.id)}}">
+Запустити ще одну модель →
+</a>
+
+<a class="button"
+   href="{{url_for('benchmarks')}}">
+← Benchmark Lab
+</a>
+
+</div>
+
+{% endblock %}

@@ -31,16 +31,37 @@ ADMIN_KEY=os.getenv("ADMIN_KEY","")
 init_db()
 
 def seed_benchmarks():
-    p=BASE/"data"/"demo_benchmark.json"
-    pack=json.loads(p.read_text(encoding="utf-8"))
+    seed_files=[
+        BASE/"data"/"demo_benchmark.json",
+        BASE/"data"/"moral_machine_global_direction_v1.json"
+    ]
+
     with SessionLocal() as db:
-        if not db.get(BenchmarkPack, pack["benchmark_id"]):
+        changed=False
+
+        for path in seed_files:
+            if not path.exists():
+                continue
+
+            pack=json.loads(path.read_text(encoding="utf-8"))
+
+            if db.get(BenchmarkPack,pack["benchmark_id"]):
+                continue
+
             db.add(BenchmarkPack(
-                id=pack["benchmark_id"], name=pack["name"], version=pack.get("version","1"),
-                source_name=pack.get("source_name"), source_url=pack.get("source_url"),
-                license_note=pack.get("license_note"), pack_json=json.dumps(pack,ensure_ascii=False)
+                id=pack["benchmark_id"],
+                name=pack["name"],
+                version=pack.get("version","1"),
+                source_name=pack.get("source_name"),
+                source_url=pack.get("source_url"),
+                license_note=pack.get("license_note"),
+                pack_json=json.dumps(pack,ensure_ascii=False)
             ))
+            changed=True
+
+        if changed:
             db.commit()
+
 seed_benchmarks()
 
 def current_participant(db):
@@ -886,8 +907,16 @@ def benchmark_result(run_id):
         if not run: abort(404)
         p=current_participant(db)
         if run.participant_id!=p.id and not session.get("admin"): abort(403)
-        packrow=db.get(BenchmarkPack,run.meta()["benchmark_id"]); m=benchmark_metrics(packrow.pack(),run.answers)
-    return render_template("result_benchmark.html",run=run,pack=packrow,m=m)
+        packrow=db.get(BenchmarkPack,run.meta()["benchmark_id"])
+        packdata=packrow.pack()
+        m=benchmark_metrics(packdata,run.answers)
+    return render_template(
+        "result_benchmark.html",
+        run=run,
+        pack=packrow,
+        packdata=packdata,
+        m=m
+    )
 
 @app.route("/admin/login",methods=["GET","POST"])
 def admin_login():

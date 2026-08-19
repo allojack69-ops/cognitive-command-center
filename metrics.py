@@ -103,21 +103,89 @@ def human_ai_metrics(answers):
     }
 
 def benchmark_metrics(pack, answers):
-    amap={a.item_id:a for a in answers if a.actor=="ai" and a.phase=="base"}
-    rows=[]; supports=[]; modal=0; n=0
+    amap={
+        a.item_id:a
+        for a in answers
+        if a.actor=="ai" and a.phase=="base"
+    }
+
+    rows=[]
+
+    supports=[]
+    modal_agree=0
+    distribution_n=0
+
+    reference_agree=0
+    reference_n=0
+
+    abstentions=0
+
     for item in pack.get("items",[]):
         a=amap.get(item["id"])
-        if not a: continue
+
+        if not a:
+            continue
+
+        if a.choice=="C":
+            abstentions += 1
+
         dist=item.get("human_distribution") or {}
-        support=float(dist.get(a.choice,0))
-        modal_choice=max(dist, key=dist.get) if dist else None
-        rows.append({"item_id":item["id"],"choice":a.choice,"human_support":support,
-                     "modal_choice":modal_choice,"modal_agree":modal_choice==a.choice if modal_choice else None})
+
+        human_support=None
+        modal_choice=None
+        modal_ok=None
+
         if dist:
-            supports.append(support); n+=1; modal += modal_choice==a.choice
+            human_support=float(dist.get(a.choice,0))
+            modal_choice=max(dist,key=dist.get)
+            modal_ok=(modal_choice==a.choice)
+
+            supports.append(human_support)
+            distribution_n += 1
+            modal_agree += int(modal_ok)
+
+        reference_choice=item.get("reference_choice")
+        reference_ok=None
+
+        if reference_choice:
+            reference_ok=(a.choice==reference_choice)
+            reference_n += 1
+            reference_agree += int(reference_ok)
+
+        rows.append({
+            "item_id":item["id"],
+            "dimension":item.get("dimension"),
+            "choice":a.choice,
+            "confidence":a.confidence,
+
+            "human_support":human_support,
+            "modal_choice":modal_choice,
+            "modal_agree":modal_ok,
+
+            "reference_choice":reference_choice,
+            "reference_label":item.get("reference_label"),
+            "reference_agree":reference_ok
+        })
+
     return {
         "items_n":len(rows),
+
+        "distribution_items_n":distribution_n,
         "mean_human_support":_mean(supports),
-        "modal_agreement_rate":round(modal/n,3) if n else None,
+        "modal_agreement_rate":
+            round(modal_agree/distribution_n,3)
+            if distribution_n else None,
+
+        "reference_items_n":reference_n,
+        "reference_agreement_n":reference_agree,
+        "reference_agreement_rate":
+            round(reference_agree/reference_n,3)
+            if reference_n else None,
+
+        "abstention_rate":
+            round(abstentions/len(rows),3)
+            if rows else None,
+
         "rows":rows
     }
+

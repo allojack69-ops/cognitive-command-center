@@ -8,7 +8,10 @@
 <a class="bigcard" href="{{url_for('benchmarks')}}"><span>03</span><h2>EXTERNAL BENCHMARKS</h2><p>Bot vs готові людські розподіли / наукові datasets.</p></a>
 </div>
 <div class="stats">
-<div><b>{{stats.runs}}</b><span>усі runs</span></div><div><b>{{stats.completed}}</b><span>completed</span></div><div><b>{{stats.benchmarks}}</b><span>benchmark packs</span></div>
+<div><b>{{stats.people_completed}}</b><span>людей пройшли ≥1 тест</span></div>
+<div><b>{{stats.completed}}</b><span>завершених тестів / runs</span></div>
+<div><b>{{stats.runs}}</b><span>усі runs</span></div>
+<div><b>{{stats.benchmarks}}</b><span>benchmark packs</span></div>
 </div>
 <section class="card"><h2>Мої останні runs</h2>
 {% if runs %}<div class="tablewrap"><table><tr><th>Run</th><th>Study</th><th>Model</th><th>Status</th><th></th></tr>

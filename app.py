@@ -150,7 +150,16 @@ def index():
                 .limit(8)
             ).all()
 
+        people_completed=db.scalar(
+            select(func.count(func.distinct(Run.participant_id)))
+            .where(
+                Run.status=="completed",
+                ~Run.study_key.like("BENCHMARK:%")
+            )
+        ) or 0
+
         stats={
+            "people_completed":people_completed,
             "runs":db.scalar(select(func.count()).select_from(Run)) or 0,
             "completed":db.scalar(select(func.count()).select_from(Run).where(Run.status=="completed")) or 0,
             "benchmarks":db.scalar(select(func.count()).select_from(BenchmarkPack)) or 0
@@ -461,8 +470,23 @@ def admin_import_bot():
             flash(err,"error")
         else:
             with SessionLocal() as db:
-                label=request.form.get("participant_label","").strip()[:120] or "legacy"
-                p=Participant(id="P-"+secrets.token_hex(6),label=label); db.add(p)
+                label=request.form.get("participant_label","").strip()[:120]
+
+                p=None
+                if label:
+                    p=db.scalar(
+                        select(Participant)
+                        .where(func.lower(Participant.label)==label.lower())
+                        .limit(1)
+                    )
+
+                if not p:
+                    p=Participant(
+                        id="P-"+secrets.token_hex(6),
+                        label=label or "legacy"
+                    )
+                    db.add(p)
+                    db.flush()
                 run=Run(id=new_run_id(),participant_id=p.id,study_key="BOT_STRESS_V01",protocol_version="LEGACY_MANUAL",
                         provider=request.form.get("provider","Other")[:80],model_label=request.form.get("model_label","unknown")[:160],
                         account_alias=request.form.get("account_alias","")[:120] or None,personalization=request.form.get("personalization","unknown"),

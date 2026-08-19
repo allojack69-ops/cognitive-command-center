@@ -797,3 +797,130 @@ footer {
 }
 
 /* ===== Universe Lab Visible Background v1.7 END ===== */
+
+/* ===== Universe Lab DOM Background v1.8 START ===== */
+
+/* Disable the older pseudo-element implementation completely. */
+body::before,
+body::after {
+  content: none !important;
+  display: none !important;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: #040811 !important;
+}
+
+body {
+  position: relative;
+  isolation: auto !important;
+}
+
+/* Real fixed DOM background: cannot disappear behind the html/body canvas. */
+.universe-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: .78;
+  filter: saturate(1.15) contrast(1.10) brightness(.88);
+  transform: translateZ(0) scale(1.01);
+}
+
+.universe-bg-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 26%,
+      rgba(2,6,12,.45) 0%,
+      rgba(3,7,14,.28) 36%,
+      rgba(3,7,14,.10) 68%,
+      rgba(3,7,14,.02) 100%),
+    linear-gradient(180deg,
+      rgba(2,6,12,.08),
+      rgba(2,6,12,.20) 52%,
+      rgba(2,6,12,.38));
+}
+
+/* Every actual UI layer sits above the background and veil. */
+header,
+main,
+footer {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+header {
+  background: rgba(3,7,13,.68) !important;
+  backdrop-filter: blur(14px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.08) !important;
+}
+
+footer {
+  background: rgba(3,7,13,.62) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* Acrylic UI surfaces. */
+.card,
+.projectcard,
+.public-feature-card,
+.research-principle,
+.research-tools > a,
+.public-value-strip > div,
+.test-outcome-grid > div,
+.flow-steps > div,
+.test-choice-main,
+.analytics-kpis > div,
+.analytics-funnel-card,
+.funnel-stage,
+.notice {
+  background:
+    linear-gradient(145deg,
+      rgba(10,19,31,.56),
+      rgba(5,11,20,.48)) !important;
+  border-color: rgba(124,196,255,.23) !important;
+  backdrop-filter: blur(11px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(11px) saturate(1.08) !important;
+}
+
+.public-hero {
+  background:
+    radial-gradient(ellipse at 42% 34%,
+      rgba(3,8,16,.26),
+      rgba(3,8,16,.08) 62%,
+      rgba(3,8,16,0) 100%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (max-width: 700px) {
+  .universe-bg-layer {
+    opacity: .62;
+    background-position: 50% center;
+    filter: saturate(1.08) contrast(1.08) brightness(.80);
+  }
+
+  .universe-bg-veil {
+    background:
+      radial-gradient(ellipse at 50% 24%,
+        rgba(2,6,12,.52) 0%,
+        rgba(3,7,14,.34) 42%,
+        rgba(3,7,14,.12) 72%,
+        rgba(3,7,14,.02) 100%),
+      linear-gradient(180deg,
+        rgba(2,6,12,.10),
+        rgba(2,6,12,.30) 58%,
+        rgba(2,6,12,.50));
+  }
+}
+
+/* ===== Universe Lab DOM Background v1.8 END ===== */

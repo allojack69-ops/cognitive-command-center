@@ -1,0 +1,13 @@
+{
+  "version": "1.8",
+  "scope": [
+    "real_dom_background",
+    "analytics_auto_refresh"
+  ],
+  "background_asset": "static/universe/universe_bg_acrylic.png",
+  "cache_bust": "v=18",
+  "analytics_refresh_seconds": 30,
+  "db_schema_changes": false,
+  "routes_changed": false,
+  "backup": ".universe_lab_backup_v18_20260820-015222"
+}

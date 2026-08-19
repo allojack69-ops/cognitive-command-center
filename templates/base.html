@@ -8,6 +8,9 @@
 <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
 </head>
 <body>
+<div id="universe-bg-layer" class="universe-bg-layer" aria-hidden="true"
+     style="background-image:url('{{ url_for('static', filename='universe/universe_bg_acrylic.png') }}?v=18')"></div>
+<div class="universe-bg-veil" aria-hidden="true"></div>
 <header>
   <div class="nav public-nav-shell">
     <a class="brand" href="{{url_for('index')}}">◉ UNIVERSE LAB</a>
@@ -48,5 +51,29 @@ function copyFrom(id,btn){
  });
 }
 </script>
+
+<script>
+(function () {
+  // Admin analytics only: refresh automatically every 30 seconds.
+  // Pauses while the tab is hidden to avoid needless requests.
+  const isAnalytics = window.location.pathname === "/admin/analytics";
+  if (!isAnalytics) return;
+
+  let timer = null;
+
+  function schedule() {
+    if (timer) clearInterval(timer);
+    if (!document.hidden) {
+      timer = setInterval(() => {
+        window.location.reload();
+      }, 30000);
+    }
+  }
+
+  document.addEventListener("visibilitychange", schedule);
+  schedule();
+})();
+</script>
+
 </body>
 </html>

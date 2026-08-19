@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block title %}Observer WAPI{% endblock %}{% block content %}
+<div class="eyebrow">06 · OBSERVER WAPI v{{snapshot.version}}</div><h1>Response timing benchmark</h1><p class="muted">Primary comparison: person×nonverbal vs person+nonverbal. Raw WAPI remains in the offline analysis engine; the lab stores compact metrics.</p>
+<div class="metricgrid"><div class="metric"><b>{{snapshot.rows_total}}</b><span>synthetic self-test rows</span></div><div class="metric"><b>{{snapshot.modes.explicit.episodes}}</b><span>explicit episodes</span></div><div class="metric"><b>{{snapshot.modes.explicit.person_file_clusters}}</b><span>clusters</span></div><div class="metric"><b>{{recent|length}}</b><span>imports</span></div></div>
+<section class="card"><h2>Engine boundary</h2><p class="muted">Не тягнемо numpy/scipy/scikit-learn у public web process. Benchmark працює окремо, а metrics.json входить у єдину історію як DATASET run.</p></section>
+{% if session.get("admin") %}<section class="card"><h2>Import metrics.json</h2><form method="post" class="form"><label>JSON<textarea name="payload" class="jsonbox" required></textarea></label><button class="primary">Import</button></form></section>{% endif %}
+{% if recent %}<section class="card"><h2>Recent imports</h2><div class="tablewrap"><table><tr><th>Run</th><th>Version</th><th>Time</th></tr>{% for r in recent %}<tr><td>{{r.id}}</td><td>{{r.protocol_version}}</td><td>{{r.created_at}}</td></tr>{% endfor %}</table></div></section>{% endif %}
+{% endblock %}

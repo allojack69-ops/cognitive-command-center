@@ -1,0 +1,63 @@
+{
+  "version": "0.7",
+  "source_files": 4,
+  "rows_total": 3360,
+  "note": "Synthetic self-test snapshot; not a scientific result.",
+  "modes": {
+    "explicit": {
+      "status": "ok",
+      "episodes": 1680,
+      "person_file_clusters": 24,
+      "thresholds_sec": [
+        20,
+        25,
+        30,
+        60,
+        120,
+        123
+      ],
+      "example_threshold_25s": {
+        "n": 504,
+        "clusters": 24,
+        "brier": {
+          "G0_global": 0.250065,
+          "P0_person": 0.230939,
+          "P1_person_history": 0.082952,
+          "P2_person_input": 0.234266,
+          "P3_person_state_input": 0.085493,
+          "P4_person_nonverbal": 0.234266,
+          "P5_person_nonverbal_interaction": 0.000857
+        },
+        "bootstrap": {
+          "person_vs_global": {
+            "delta": 0.019126,
+            "ci95": [
+              0.008246,
+              0.028026
+            ],
+            "p_pos": 1.0,
+            "clusters": 24
+          },
+          "state_vs_input": {
+            "delta": 0.148773,
+            "ci95": [
+              0.134151,
+              0.165941
+            ],
+            "p_pos": 1.0,
+            "clusters": 24
+          },
+          "person_interaction_vs_nonverbal": {
+            "delta": 0.233409,
+            "ci95": [
+              0.216879,
+              0.251611
+            ],
+            "p_pos": 1.0,
+            "clusters": 24
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block title %}Lab Data{% endblock %}{% block content %}
+<div class="eyebrow">UNIFIED DATA</div><h1>Research runs</h1>
+<div class="labstats"><div><b>{{summary.total_runs}}</b><span>all runs</span></div><div><b>{{summary.completed_runs}}</b><span>completed</span></div><div><b>{{summary.external_results}}</b><span>external results</span></div><div><b>{{summary.benchmark_packs}}</b><span>benchmark packs</span></div></div>
+<section class="card"><div class="tablewrap"><table><tr><th>Run</th><th>Study</th><th>Participant</th><th>Model</th><th>Status</th><th>Time</th></tr>{% for r in runs %}<tr><td>{{r.id}}</td><td>{{r.study_key}}</td><td>{{r.participant_id}}</td><td>{{r.model_label or "—"}}</td><td><span class="pill">{{r.status}}</span></td><td>{{r.created_at}}</td></tr>{% endfor %}</table></div></section>
+{% endblock %}

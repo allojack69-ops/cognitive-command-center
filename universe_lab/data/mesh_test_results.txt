@@ -1,0 +1,21 @@
+MOR Mesh v0.7 preflight
+=======================
+
+Inherited v0.6 model tests:
+- delayed-delivery crypto/routing model: PASS
+- reliability + ACK model: PASS
+- survival persistence model: PASS
+- transport recovery model: PASS
+
+New v0.7 model:
+- signed HELLO accepts matching endpoint/contact identity: PASS
+- HELLO rejects endpoint/contact node mismatch: PASS
+- HELLO rejects invalid binding signature: PASS
+- field probe reaches ACKNOWLEDGED only after verified ACK: PASS
+
+Static checks:
+- activity layout XML parses: PASS
+- all MainActivity R.id button references exist in layout: PASS
+- v0.7 artifact/workflow names are internally consistent: PASS
+
+Final Android compilation/signature verification is performed by GitHub Actions before the APK artifact is emitted.

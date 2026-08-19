@@ -1,40 +1,15 @@
-{% extends "base.html" %}{% block title %}Command Center{% endblock %}
+{% extends "base.html" %}{% block title %}Universe Laboratory{% endblock %}
 {% block content %}
-<section class="hero"><div class="eyebrow">RESEARCH HQ</div><h1>Штаб Human–AI / Bot Cognitive Dynamics</h1>
-<p>Один інструмент для учасників, твоїх ручних прогонів, Human–AI пар і зовнішніх людських benchmark-даних.</p></section>
-<div class="grid3">
-<a class="bigcard" href="{{url_for('bot_new')}}"><span>01</span><h2>RUN BOT TEST</h2><p>20 складних сценаріїв + 6 follow-up. Автоматична перевірка JSON.</p></a>
-<a class="bigcard" href="{{url_for('hai_new')}}"><span>02</span><h2>HUMAN ↔ AI PAIR</h2><p>Людина відповідає першою, потім її персоналізований AI.</p></a>
-<a class="bigcard" href="{{url_for('benchmarks')}}"><span>03</span><h2>EXTERNAL BENCHMARKS</h2><p>Bot vs готові людські розподіли / наукові datasets.</p></a>
-<a class="bigcard" href="{{url_for('history_probe.new_pair')}}"><span>04</span><h2>HISTORY INTERVENTION</h2><p>Одна модель, однаковий target, різна контрольована передісторія.</p></a>
-</div>
-<div class="stats">
-<div><b>{{stats.people_completed}}</b><span>людей пройшли ≥1 тест</span></div>
-<div><b>{{stats.completed}}</b><span>завершених тестів / runs</span></div>
-<div><b>{{stats.runs}}</b><span>усі runs</span></div>
-<div><b>{{stats.benchmarks}}</b><span>benchmark packs</span></div>
-</div>
-<section class="card">
-<div class="cardhead">
-<h2>Мої останні runs</h2>
-
-{% if runs|selectattr("study_key","equalto","BOT_STRESS_V01")|selectattr("status","equalto","completed")|list|length >= 2 %}
-<a class="button" href="{{url_for('compare_models')}}">
-Порівняти моделі →
-</a>
-{% endif %}
-
-</div>
-{% if runs %}<div class="tablewrap"><table><tr><th>Run</th><th>Study</th><th>Model</th><th>Status</th><th></th></tr>
-{% for r in runs %}<tr><td>{{r.id}}</td><td>{{r.study_key}}</td><td>{{r.model_label}}</td><td><span class="pill">{{r.status}}</span></td>
-<td>{% if r.study_key=="BOT_STRESS_V01" %}<a href="{{url_for('bot_result',run_id=r.id) if r.status=='completed' else url_for('bot_base',run_id=r.id)}}">відкрити</a>
+<section class="hero labhero"><div class="eyebrow">ВСЕСВІТ · RESEARCH HQ</div><h1>Human–AI / Cognitive / Systems Laboratory</h1><p>Не набір окремих сайтів. Один Command Center, у якому кожен проєкт — модуль однієї дослідницької системи.</p><div class="toolbar"><a class="button primary" href="{{url_for('universe_lab.home')}}">Open Laboratory →</a><a class="button" href="{{url_for('universe_lab.data_home')}}">Unified Data</a></div></section>
+<div class="projectgrid homeprojects">{% for p in universe_projects %}<a class="projectcard" href="{{url_for(p.endpoint)}}"><div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div><h2>{{p.title}}</h2><p>{{p.subtitle}}</p><div class="projectkind">{{p.kind}}</div></a>{% endfor %}</div>
+<div class="stats"><div><b>{{stats.people_completed}}</b><span>людей пройшли ≥1 test</span></div><div><b>{{stats.completed}}</b><span>completed runs</span></div><div><b>{{stats.runs}}</b><span>all command runs</span></div><div><b>{{stats.benchmarks}}</b><span>benchmark packs</span></div></div>
+<section class="card"><div class="cardhead"><h2>Мої останні runs</h2><div class="toolbar">{% if runs|selectattr("study_key","equalto","BOT_STRESS_V01")|selectattr("status","equalto","completed")|list|length >= 2 %}<a class="button" href="{{url_for('compare_models')}}">Порівняти моделі →</a>{% endif %}<a class="button" href="{{url_for('universe_lab.data_home')}}">All data →</a></div></div>
+{% if runs %}<div class="tablewrap"><table><tr><th>Run</th><th>Study</th><th>Model</th><th>Status</th><th></th></tr>{% for r in runs %}<tr><td>{{r.id}}</td><td>{{r.study_key}}</td><td>{{r.model_label}}</td><td><span class="pill">{{r.status}}</span></td><td>
+{% if r.study_key=="BOT_STRESS_V01" %}<a href="{{url_for('bot_result',run_id=r.id) if r.status=='completed' else url_for('bot_base',run_id=r.id)}}">відкрити</a>
 {% elif r.study_key=="HUMAN_AI_STATE_V1" %}<a href="{{url_for('hai_result',run_id=r.id) if r.status=='completed' else url_for('hai_human',run_id=r.id)}}">відкрити</a>
 {% elif r.study_key=="HISTORY_INTERVENTION_V01" %}<a href="{{url_for('history_probe.pair_result',pair_id=r.meta().get('pair_id')) if r.status=='completed' else url_for('history_probe.run_arm',run_id=r.id)}}">відкрити</a>
-{% endif %}</td></tr>{% endfor %}</table></div>
-{% else %}<p class="muted">Ще немає runs.</p>{% endif %}</section>
-{% if participant %}
-<p class="muted small">Anonymous participant ID: {{participant.id}}</p>
-{% else %}
-<p class="muted small">Participant ID буде створено після початку першого run.</p>
-{% endif %}
+{% elif r.study_key=="CD_GRP_V052" %}<a href="{{url_for('universe_grp.result',sid=r.meta().get('grp_session_id')) if r.status=='completed' else url_for('universe_grp.home')}}">відкрити</a>
+{% elif r.study_key=="MOR_MESH_FIELD_V07" %}<a href="{{url_for('universe_mesh.result',run_id=r.id)}}">відкрити</a>{% endif %}
+</td></tr>{% endfor %}</table></div>{% else %}<p class="muted">Ще немає runs.</p>{% endif %}</section>
+{% if participant %}<p class="muted small">Anonymous participant ID: {{participant.id}}</p>{% else %}<p class="muted small">Participant ID буде створено після початку першого run.</p>{% endif %}
 {% endblock %}

@@ -2,13 +2,13 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block title %}Cognitive Command Center{% endblock %}</title>
+<title>{% block title %}Universe Laboratory{% endblock %}</title>
 <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
 </head>
 <body>
 <header><div class="nav">
-<a class="brand" href="{{url_for('index')}}">◉ COGNITIVE COMMAND CENTER</a>
-<nav><a href="{{url_for('benchmarks')}}">Benchmarks</a><a href="{{url_for('admin')}}">Admin</a></nav>
+<a class="brand" href="{{url_for('index')}}">◉ UNIVERSE LAB</a>
+<nav><a href="{{url_for('universe_lab.home')}}">Laboratory</a><a href="{{url_for('benchmarks')}}">Benchmarks</a><a href="{{url_for('admin')}}">Admin</a></nav>
 </div></header>
 <main class="wrap">
 {% with messages=get_flashed_messages(with_categories=true) %}
@@ -16,7 +16,7 @@
 {% endwith %}
 {% block content %}{% endblock %}
 </main>
-<footer><div class="wrap muted small">ВСЕСВІТ · research instrument · дані не є оцінкою «правильно/неправильно»</div></footer>
+<footer><div class="wrap muted small">ВСЕСВІТ · unified research laboratory · Human × AI × State × History × Field</div></footer>
 <script>
 function copyFrom(id,btn){
  const el=document.getElementById(id);

@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block title %}Universe Laboratory{% endblock %}
+{% block content %}
+<section class="hero labhero"><div class="eyebrow">ВСЕСВІТ · UNIFIED RESEARCH LABORATORY</div>
+<h1>Одна лабораторія.<br>Всі наші експерименти.</h1>
+<p>Human–AI, cognitive dynamics, model comparison, causal history interventions, observer engines і real network field tests — в одному Research HQ.</p></section>
+<div class="labstats"><div><b>{{summary.projects}}</b><span>research modules</span></div><div><b>{{summary.human_people}}</b><span>participants ≥1 completed</span></div><div><b>{{summary.completed_runs}}</b><span>completed runs</span></div><div><b>{{summary.grp_completed}}</b><span>GRP completed</span></div></div>
+<div class="projectgrid">{% for p in projects %}<a class="projectcard" href="{{url_for(p.endpoint)}}"><div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div><h2>{{p.title}}</h2><p>{{p.subtitle}}</p><div class="projectkind">{{p.kind}}</div></a>{% endfor %}</div>
+<section class="card"><div class="cardhead"><h2>Unified data layer</h2><a class="button" href="{{url_for('universe_lab.data_home')}}">Open data →</a></div>
+<p class="muted">New GRP sessions and MOR Mesh field runs use the same participant/run backbone as Command Center. Dataset engines are stored as DATASET runs and excluded from human participant counts.</p></section>
+{% endblock %}

@@ -1,0 +1,3 @@
+{% extends "base.html" %}{% block title %}MOR Mesh Run{% endblock %}{% block content %}
+<div class="eyebrow">MOR MESH FIELD RUN</div><h1>{{meta.result}}</h1><div class="metricgrid"><div class="metric"><b>{{"✓" if meta.hello_a else "×"}}</b><span>A HELLO</span></div><div class="metric"><b>{{"✓" if meta.hello_b else "×"}}</b><span>B HELLO</span></div><div class="metric"><b>{{"✓" if meta.delivered else "×"}}</b><span>delivery</span></div><div class="metric"><b>{{"✓" if meta.ack_verified and meta.queue_gc else "×"}}</b><span>ACK + GC</span></div></div><section class="card"><pre>{{meta|tojson(indent=2)}}</pre></section>
+{% endblock %}

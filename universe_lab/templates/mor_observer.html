@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block title %}MOR Observer{% endblock %}{% block content %}
+<div class="eyebrow">07 · MOR OBSERVER · {{snapshot.export_version}}</div><h1>State / geometry / transition engine</h1><p class="muted">Observer remains its own runtime; compact research snapshots enter the unified data catalog.</p>
+<div class="metricgrid"><div class="metric"><b>{{snapshot.trader_version}}</b><span>observer version</span></div><div class="metric"><b>{{snapshot.symbol}}</b><span>symbol</span></div><div class="metric"><b>{{snapshot.derived_modules|length}}</b><span>derived modules</span></div><div class="metric"><b>{{recent|length}}</b><span>imports</span></div></div><section class="card"><h2>Repository snapshot</h2><pre>{{snapshot|tojson(indent=2)}}</pre></section>
+{% if session.get("admin") %}<section class="card"><h2>Import compact/latest MOR JSON</h2><p class="muted">Limit 2 MB; full raw history stays in observer storage.</p><form method="post" class="form"><label>JSON<textarea name="payload" class="jsonbox" required></textarea></label><button class="primary">Import</button></form></section>{% endif %}
+{% endblock %}

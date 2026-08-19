@@ -1,0 +1,52 @@
+{
+  "export_version": "MORX1",
+  "trader_version": "1.23",
+  "generated_at": "2026-08-19T18:00:47.293422+00:00",
+  "symbol": "BTCUSDT",
+  "interval": "1m",
+  "scope": "FULL_RESEARCH_EXPORT",
+  "runtime_counts": {
+    "state_id": 0,
+    "candle_seq": 0,
+    "pending_predictions": 0,
+    "pending_shadows": 0,
+    "pending_tradeability": 0,
+    "pending_corridor": 0,
+    "pending_corridor2": 0,
+    "pending_corridor3": 0,
+    "pending_gol2": 0,
+    "gol2_cells": 0,
+    "tom1_cells": 0,
+    "teg1_cells": 0
+  },
+  "derived_modules": [
+    "PFL1",
+    "EFS1",
+    "BPM1",
+    "EH1",
+    "GSR1",
+    "CGE1",
+    "AAL1",
+    "ERL1",
+    "GDX1",
+    "SCR1",
+    "GAP1",
+    "GRC1",
+    "RES1"
+  ],
+  "metric_groups": [
+    "shadow_metrics",
+    "horizon_system_metrics",
+    "adaptive_metrics",
+    "tradeability_metrics",
+    "corridor_metrics",
+    "corridor2_metrics",
+    "corridor3_metrics",
+    "geometry_outcome_metrics",
+    "economic_front_tracker",
+    "bipolar_pressure_tracker",
+    "session_continuity_tracker",
+    "model_residual_tracker"
+  ],
+  "note": "Repository snapshot only. Live observer output may be newer."
+}

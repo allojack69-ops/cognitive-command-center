@@ -1,0 +1,72 @@
+{
+  "generated_from": "universe-lab-projects.tar.gz",
+  "source_projects": {
+    "cognitive-command-center": {
+      "runtime": "Flask/Gunicorn/SQLAlchemy",
+      "role": "canonical web/control plane",
+      "existing_studies": [
+        "BOT_STRESS_V01",
+        "HUMAN_AI_STATE_V1",
+        "BENCHMARK:*",
+        "HISTORY_INTERVENTION_V01"
+      ],
+      "existing_analysis": [
+        "bot_metrics",
+        "human_ai_metrics",
+        "benchmark_metrics",
+        "model comparison",
+        "quality checks",
+        "boundary stability",
+        "presentation geometry",
+        "history metrics"
+      ]
+    },
+    "cognitive-dynamics-grp": {
+      "runtime": "FastAPI/Uvicorn/SQLAlchemy",
+      "role": "GRP randomized cognitive dynamics experiment",
+      "protocol": "CD-GRP-0.5.2-RESET-WASHOUT",
+      "original_tables": [
+        "participant_sessions",
+        "trials"
+      ],
+      "integration": "native Flask blueprint + shared Participant/Run"
+    },
+    "observer_wapi_v0.7": {
+      "runtime": "offline Python ML",
+      "role": "WAPI response-timing benchmark + observer research storage",
+      "heavy_dependencies": [
+        "numpy",
+        "scipy",
+        "scikit-learn"
+      ],
+      "integration": "metrics/snapshot ingestion; engine remains external"
+    },
+    "MOR-mesh-work": {
+      "runtime": "Android/Java + Python models",
+      "role": "encrypted two-node mesh field system",
+      "version": "0.7",
+      "integration": "field-test registry as canonical runs"
+    }
+  },
+  "new_study_keys": [
+    "CD_GRP_V052",
+    "DATASET:OBSERVER_WAPI_V07",
+    "DATASET:MOR_OBSERVER",
+    "MOR_MESH_FIELD_V07"
+  ],
+  "new_tables": [
+    "grp_sessions",
+    "grp_trials",
+    "lab_external_results"
+  ],
+  "web_urls": [
+    "/",
+    "/lab/",
+    "/lab/data",
+    "/grp/",
+    "/grp/recruitment",
+    "/observer/wapi",
+    "/observer/mor",
+    "/mesh-lab/"
+  ]
+}

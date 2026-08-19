@@ -149,6 +149,11 @@ app.register_blueprint(form_dashboard_bp)
 from history_probe import bp as history_probe_bp
 app.register_blueprint(history_probe_bp)
 
+# --- Universe Laboratory v1 ---
+from universe_lab import register_universe_lab
+register_universe_lab(app)
+# --- End Universe Laboratory v1 ---
+
 def current_participant(db):
     pid=session.get("participant_id")
     p=db.get(Participant,pid) if pid else None
@@ -287,7 +292,9 @@ def index():
             select(func.count(func.distinct(Run.participant_id)))
             .where(
                 Run.status=="completed",
-                ~Run.study_key.like("BENCHMARK:%")
+                ~Run.study_key.like("BENCHMARK:%"),
+                ~Run.study_key.like("DATASET:%"),
+                Run.participant_id!="P-LAB-SYSTEM"
             )
         ) or 0
 

@@ -140,6 +140,9 @@ app.register_blueprint(benchmark_compare_bp)
 from stability_compare import bp as stability_compare_bp
 app.register_blueprint(stability_compare_bp)
 
+from form_api import bp as form_api_bp
+app.register_blueprint(form_api_bp)
+
 def current_participant(db):
     pid=session.get("participant_id")
     p=db.get(Participant,pid) if pid else None

@@ -237,6 +237,279 @@ def bot_result(run_id):
         metrics=bot_metrics(run.answers)
     return render_template("result_bot.html",run=run,m=metrics)
 
+
+@app.get("/compare")
+def compare_models():
+    participant_id=session.get("participant_id")
+
+    if not participant_id:
+        return render_template(
+            "message.html",
+            title="Порівняння моделей",
+            message="Спочатку заверши щонайменше два Bot Stress runs у цьому браузері."
+        )
+
+    with SessionLocal() as db:
+        participant=db.get(Participant,participant_id)
+
+        if not participant:
+            return render_template(
+                "message.html",
+                title="Порівняння моделей",
+                message="Participant не знайдений."
+            )
+
+        runs=db.scalars(
+            select(Run)
+            .where(
+                Run.participant_id==participant_id,
+                Run.study_key=="BOT_STRESS_V01",
+                Run.status=="completed"
+            )
+            .order_by(Run.completed_at.asc(),Run.created_at.asc())
+        ).all()
+
+        if len(runs)<2:
+            return render_template(
+                "message.html",
+                title="Порівняння моделей",
+                message="Для порівняння потрібно щонайменше два завершені Bot Stress runs."
+            )
+
+        # ---------------------------
+        # Unique display labels
+        # ---------------------------
+        label_counts={}
+        for r in runs:
+            key=r.model_label or "unknown"
+            label_counts[key]=label_counts.get(key,0)+1
+
+        seen={}
+        cards=[]
+        base_maps={}
+        update_maps={}
+        metric_maps={}
+        display_labels={}
+
+        for r in runs:
+            model=r.model_label or "unknown"
+
+            seen[model]=seen.get(model,0)+1
+            display=model
+
+            if label_counts[model]>1:
+                display=f"{model} #{seen[model]}"
+
+            base={}
+            update={}
+
+            for a in r.answers:
+                if a.actor!="ai":
+                    continue
+
+                if a.phase=="base":
+                    base[a.item_id]=a
+                elif a.phase=="update":
+                    update[a.item_id]=a
+
+            metrics=bot_metrics(r.answers)
+
+            base_maps[r.id]=base
+            update_maps[r.id]=update
+            metric_maps[r.id]=metrics
+            display_labels[r.id]=display
+
+            def pct(v):
+                return None if v is None else round(v*100,1)
+
+            cards.append({
+                "run_id":r.id,
+                "model":display,
+                "provider":r.provider or "—",
+                "account":r.account_alias or "—",
+                "personalization":r.personalization or "—",
+
+                "state":
+                    f"{metrics['state_flips']}/{metrics['state_pairs_n']}",
+
+                "state_rate":
+                    pct(metrics.get("state_flip_rate")),
+
+                "frame":
+                    pct(metrics.get("frame_nonaccept_rate")),
+
+                "follow":
+                    f"{metrics['followup_choice_changes']}/"
+                    f"{metrics['followup_comparable_n']}",
+
+                "follow_rate":
+                    pct(metrics.get("followup_change_rate")),
+
+                "confidence":
+                    metrics.get("mean_confidence"),
+
+                "third_path":
+                    pct(metrics.get("c_choice_rate"))
+            })
+
+        # ---------------------------
+        # 20 base scenarios
+        # ---------------------------
+        scenario_rows=[]
+        unanimous=0
+        split=0
+
+        for item in BOT_BANK["items"]:
+            iid=item["id"]
+
+            cells=[]
+            choices=[]
+
+            for r in runs:
+                a=base_maps[r.id].get(iid)
+
+                if a:
+                    choices.append(a.choice)
+
+                    cells.append({
+                        "choice":a.choice,
+                        "confidence":
+                            int(a.confidence)
+                            if a.confidence is not None
+                            else None,
+                        "frame":a.frame_status or "—"
+                    })
+                else:
+                    cells.append({
+                        "choice":"—",
+                        "confidence":None,
+                        "frame":"—"
+                    })
+
+            is_unanimous=(
+                len(choices)==len(runs)
+                and len(set(choices))==1
+            )
+
+            if is_unanimous:
+                unanimous+=1
+            else:
+                split+=1
+
+            scenario_rows.append({
+                "id":iid,
+                "family":item.get("family",""),
+                "text":item.get("text",""),
+                "unanimous":is_unanimous,
+                "cells":cells
+            })
+
+        # ---------------------------
+        # Pairwise agreement
+        # ---------------------------
+        agreement=[]
+        agreement_values=[]
+
+        for i in range(len(runs)):
+            for j in range(i+1,len(runs)):
+                left=runs[i]
+                right=runs[j]
+
+                same=0
+                total=0
+
+                for item in BOT_BANK["items"]:
+                    iid=item["id"]
+
+                    a=base_maps[left.id].get(iid)
+                    b=base_maps[right.id].get(iid)
+
+                    if a and b:
+                        total+=1
+                        same+=int(a.choice==b.choice)
+
+                rate=round(same/total*100,1) if total else None
+
+                if rate is not None:
+                    agreement_values.append(rate)
+
+                agreement.append({
+                    "left":display_labels[left.id],
+                    "right":display_labels[right.id],
+                    "same":same,
+                    "total":total,
+                    "rate":rate
+                })
+
+        mean_agreement=(
+            round(
+                sum(agreement_values)/len(agreement_values),
+                1
+            )
+            if agreement_values
+            else None
+        )
+
+        # ---------------------------
+        # Follow-up transitions
+        # ---------------------------
+        follow_rows=[]
+
+        for f in BOT_BANK["followups"]:
+            iid=f["id"]
+
+            cells=[]
+
+            for r in runs:
+                prev=base_maps[r.id].get(iid)
+                upd=update_maps[r.id].get(iid)
+
+                update_lookup={
+                    x["item_id"]:x
+                    for x in metric_maps[r.id].get("followups",[])
+                }
+
+                classified=update_lookup.get(iid,{})
+
+                cells.append({
+                    "before":
+                        prev.choice if prev else "—",
+
+                    "after":
+                        upd.choice if upd else "—",
+
+                    "type":
+                        classified.get("update_type","—"),
+
+                    "delta":
+                        classified.get("confidence_delta")
+                })
+
+            follow_rows.append({
+                "id":iid,
+                "cells":cells
+            })
+
+        summary={
+            "models":len(runs),
+            "unanimous":unanimous,
+            "split":split,
+            "mean_agreement":mean_agreement
+        }
+
+        participant_label=participant.label or participant.id
+
+    return render_template(
+        "compare_models.html",
+        participant_label=participant_label,
+        cards=cards,
+        scenario_rows=scenario_rows,
+        follow_rows=follow_rows,
+        agreement=agreement,
+        summary=summary
+    )
+
+
 @app.route("/human-ai/new",methods=["GET","POST"])
 def hai_new():
     if request.method=="POST":

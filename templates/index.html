@@ -13,7 +13,17 @@
 <div><b>{{stats.runs}}</b><span>усі runs</span></div>
 <div><b>{{stats.benchmarks}}</b><span>benchmark packs</span></div>
 </div>
-<section class="card"><h2>Мої останні runs</h2>
+<section class="card">
+<div class="cardhead">
+<h2>Мої останні runs</h2>
+
+{% if runs|selectattr("study_key","equalto","BOT_STRESS_V01")|selectattr("status","equalto","completed")|list|length >= 2 %}
+<a class="button" href="{{url_for('compare_models')}}">
+Порівняти моделі →
+</a>
+{% endif %}
+
+</div>
 {% if runs %}<div class="tablewrap"><table><tr><th>Run</th><th>Study</th><th>Model</th><th>Status</th><th></th></tr>
 {% for r in runs %}<tr><td>{{r.id}}</td><td>{{r.study_key}}</td><td>{{r.model_label}}</td><td><span class="pill">{{r.status}}</span></td>
 <td>{% if r.study_key=="BOT_STRESS_V01" %}<a href="{{url_for('bot_result',run_id=r.id) if r.status=='completed' else url_for('bot_base',run_id=r.id)}}">відкрити</a>

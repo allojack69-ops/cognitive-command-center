@@ -1,0 +1,319 @@
+
+{% extends "base.html" %}
+
+{% block title %}
+Model Comparison
+{% endblock %}
+
+{% block content %}
+
+<div class="eyebrow">
+MODEL COMPARISON · {{participant_label}}
+</div>
+
+<h1>Когнітивний профіль моделей</h1>
+
+<p class="muted">
+Порівняння завершених Bot Cognitive Stress runs одного participant.
+Однакові питання, різні моделі / персоналізовані стани.
+</p>
+
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>{{summary.models}}</b>
+<span>моделей / runs</span>
+</div>
+
+<div class="metric">
+<b>{{summary.unanimous}}/20</b>
+<span>повний збіг</span>
+</div>
+
+<div class="metric">
+<b>{{summary.split}}/20</b>
+<span>сценаріїв з розходженням</span>
+</div>
+
+<div class="metric">
+<b>
+{% if summary.mean_agreement is not none %}
+{{summary.mean_agreement}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>mean pairwise agreement</span>
+</div>
+
+</div>
+
+
+<section class="card">
+
+<h2>Профілі моделей</h2>
+
+<div class="modelcompare">
+
+{% for c in cards %}
+
+<div class="modelcard">
+
+<div class="eyebrow">
+{{c.provider}}
+</div>
+
+<h3>{{c.model}}</h3>
+
+<div class="modelmeta">
+{{c.account}} · {{c.personalization}}
+</div>
+
+<div class="mini-grid">
+
+<div>
+<b>{{c.state}}</b>
+<span>state flips</span>
+</div>
+
+<div>
+<b>
+{% if c.frame is not none %}
+{{c.frame}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>frame non-accept</span>
+</div>
+
+<div>
+<b>{{c.follow}}</b>
+<span>policy updates</span>
+</div>
+
+<div>
+<b>{{c.confidence or "—"}}</b>
+<span>confidence</span>
+</div>
+
+<div>
+<b>
+{% if c.third_path is not none %}
+{{c.third_path}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>C-choice rate</span>
+</div>
+
+</div>
+
+<a class="small"
+href="{{url_for('bot_result',run_id=c.run_id)}}">
+відкрити run →
+</a>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<h2>Pairwise agreement</h2>
+
+<div class="tablewrap">
+
+<table>
+
+<tr>
+<th>Model A</th>
+<th>Model B</th>
+<th>Same</th>
+<th>Agreement</th>
+</tr>
+
+{% for x in agreement %}
+
+<tr>
+
+<td>{{x.left}}</td>
+
+<td>{{x.right}}</td>
+
+<td>{{x.same}} / {{x.total}}</td>
+
+<td>
+{% if x.rate is not none %}
+<b>{{x.rate}}%</b>
+{% else %}
+—
+{% endif %}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<h2>20 базових сценаріїв</h2>
+
+<p class="muted small">
+Choice · confidence · frame status.
+Рядки з різними рішеннями моделей підсвічуються.
+</p>
+
+<div class="tablewrap">
+
+<table class="compare-table">
+
+<tr>
+
+<th>Item</th>
+
+{% for c in cards %}
+<th>{{c.model}}</th>
+{% endfor %}
+
+</tr>
+
+{% for row in scenario_rows %}
+
+<tr class="{% if not row.unanimous %}split-row{% endif %}">
+
+<td>
+
+<b>{{row.id}}</b>
+
+<div class="muted small">
+{{row.family}}
+</div>
+
+</td>
+
+{% for cell in row.cells %}
+
+<td>
+
+<div class="choice-big">
+{{cell.choice}}
+</div>
+
+{% if cell.confidence is not none %}
+<div class="small">
+{{cell.confidence}}%
+</div>
+{% endif %}
+
+<div class="tiny muted">
+{{cell.frame}}
+</div>
+
+</td>
+
+{% endfor %}
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<h2>Follow-up dynamics</h2>
+
+<p class="muted small">
+Before → After · тип оновлення · Δ confidence.
+</p>
+
+<div class="tablewrap">
+
+<table class="compare-table">
+
+<tr>
+
+<th>Item</th>
+
+{% for c in cards %}
+<th>{{c.model}}</th>
+{% endfor %}
+
+</tr>
+
+{% for row in follow_rows %}
+
+<tr>
+
+<td>
+<b>{{row.id}}</b>
+</td>
+
+{% for cell in row.cells %}
+
+<td>
+
+<div class="transition">
+{{cell.before}} → {{cell.after}}
+</div>
+
+<div class="pill">
+{{cell.type}}
+</div>
+
+{% if cell.delta is not none %}
+<div class="small muted">
+Δconf {{cell.delta}}
+</div>
+{% endif %}
+
+</td>
+
+{% endfor %}
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<div class="toolbar">
+
+<a class="button"
+href="{{url_for('bot_new')}}">
++ Новий bot run
+</a>
+
+<a class="button"
+href="{{url_for('index')}}">
+← Головна
+</a>
+
+</div>
+
+{% endblock %}

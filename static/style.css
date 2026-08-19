@@ -14,3 +14,87 @@ button,.button{display:inline-block;border:1px solid #3d607d;border-radius:11px;
 .question{padding:18px 0;border-bottom:1px solid var(--line)}.option{display:block;padding:9px 10px;margin:7px 0;background:#0b1119;border-radius:10px;color:var(--text)}.option input{width:auto;margin:0 7px 0 0}.confidence{display:flex!important;gap:8px;align-items:center}.confidence select{width:90px;margin:0}
 table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}.tablewrap{overflow:auto}.pill{display:inline-block;border:1px solid #36536d;border-radius:999px;padding:3px 8px;font-size:11px;color:#bfe7ff}.toolbar{display:flex;gap:8px;flex-wrap:wrap}.small{font-size:12px}footer{border-top:1px solid var(--line);margin-top:40px}
 @media(max-width:850px){.grid3,.grid2,.metricgrid,.split{grid-template-columns:1fr}.nav nav{display:none}.prompt{min-height:360px}.jsonbox{min-height:300px}.stats{display:grid;grid-template-columns:1fr 1fr}.hero h1,h1{font-size:34px}}
+
+
+.modelcompare{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:14px;
+}
+
+.modelcard{
+border:1px solid var(--line);
+background:#0b1119;
+border-radius:16px;
+padding:16px;
+}
+
+.modelcard h3{
+font-size:24px;
+margin:6px 0;
+}
+
+.modelmeta{
+color:var(--muted);
+font-size:12px;
+margin-bottom:15px;
+}
+
+.mini-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:8px;
+margin:12px 0 16px;
+}
+
+.mini-grid div{
+background:#080d14;
+border:1px solid var(--line);
+border-radius:10px;
+padding:10px;
+}
+
+.mini-grid b{
+display:block;
+font-size:20px;
+}
+
+.mini-grid span{
+font-size:10px;
+color:var(--muted);
+}
+
+.compare-table th,
+.compare-table td{
+min-width:110px;
+}
+
+.compare-table th:first-child,
+.compare-table td:first-child{
+position:sticky;
+left:0;
+background:#101722;
+z-index:2;
+min-width:78px;
+}
+
+.split-row{
+background:rgba(98,212,255,.055);
+}
+
+.choice-big{
+font-size:25px;
+font-weight:900;
+}
+
+.transition{
+font-size:18px;
+font-weight:900;
+margin-bottom:5px;
+}
+
+.tiny{
+font-size:9px;
+word-break:break-word;
+}
+

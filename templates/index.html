@@ -17,5 +17,9 @@
 {% elif r.study_key=="HUMAN_AI_STATE_V1" %}<a href="{{url_for('hai_result',run_id=r.id) if r.status=='completed' else url_for('hai_human',run_id=r.id)}}">відкрити</a>
 {% endif %}</td></tr>{% endfor %}</table></div>
 {% else %}<p class="muted">Ще немає runs.</p>{% endif %}</section>
+{% if participant %}
 <p class="muted small">Anonymous participant ID: {{participant.id}}</p>
+{% else %}
+<p class="muted small">Participant ID буде створено після початку першого run.</p>
+{% endif %}
 {% endblock %}

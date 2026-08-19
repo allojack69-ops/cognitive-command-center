@@ -139,13 +139,23 @@ def validate_state_follow(data):
 @app.get("/")
 def index():
     with SessionLocal() as db:
-        p=current_participant(db)
-        my_runs=db.scalars(select(Run).where(Run.participant_id==p.id).order_by(Run.created_at.desc()).limit(8)).all()
+        pid=session.get("participant_id")
+        p=db.get(Participant,pid) if pid else None
+        my_runs=[]
+        if p:
+            my_runs=db.scalars(
+                select(Run)
+                .where(Run.participant_id==p.id)
+                .order_by(Run.created_at.desc())
+                .limit(8)
+            ).all()
+
         stats={
             "runs":db.scalar(select(func.count()).select_from(Run)) or 0,
             "completed":db.scalar(select(func.count()).select_from(Run).where(Run.status=="completed")) or 0,
             "benchmarks":db.scalar(select(func.count()).select_from(BenchmarkPack)) or 0
         }
+
     return render_template("index.html",participant=p,runs=my_runs,stats=stats)
 
 @app.route("/bot/new",methods=["GET","POST"])

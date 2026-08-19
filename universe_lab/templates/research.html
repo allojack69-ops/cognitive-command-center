@@ -1,7 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Research · Universe Lab{% endblock %}
 {% block content %}
-<section class="public-hero compact-hero research-hero"><div class="eyebrow">RESEARCH LAYER</div><h1>From runs to dynamics.</h1><p class="public-lead">The public layer collects standardized observations. The research layer studies invariance, context sensitivity, history dependence, model geometry and real field transitions.</p></section>
+<section class="public-hero compact-hero research-hero visual-research-hero">
+  <div class="visual-hero-copy">
+    <div class="eyebrow">RESEARCH LAYER</div>
+    <h1>From runs to dynamics.</h1>
+    <p class="public-lead">
+      The public layer collects standardized observations. The research layer studies invariance,
+      context sensitivity, history dependence, model geometry and real field transitions.
+    </p>
+  </div>
+  <figure class="state-field-visual research-field-visual">
+    <img src="{{url_for('static',filename='universe/state_field_02.jpg')}}"
+         alt="Dense colored state-field lattice">
+    <figcaption><span>STATE FIELD · 02</span><b>Repeated states / deformation / invariance</b></figcaption>
+  </figure>
+</section>
 
 <div class="research-principle-grid">
   <div class="research-principle"><span>STATE</span><b>Z<sub>t</sub> = (S<sub>t</sub>, R<sub>t</sub>, M<sub>t</sub>)</b><p>Structure, relation/context and causally relevant memory.</p></div>

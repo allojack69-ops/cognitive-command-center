@@ -15,35 +15,69 @@
 </div>
 
 <section class="analytics-kpis">
-  <div>
-    <span>ALL TIME</span>
-    <b>{{data.all_time.unique_browsers}}</b>
-    <small>unique browsers</small>
+  <div><span>ALL TIME</span><b>{{data.all_time.unique_browsers}}</b><small>unique browsers</small></div>
+  <div><span>ALL TIME</span><b>{{data.all_time.visits}}</b><small>visits</small></div>
+  <div><span>ALL TIME</span><b>{{data.all_time.pageviews}}</b><small>pageviews</small></div>
+  <div><span>TODAY</span><b>{{data.today.visitors}}</b><small>unique browsers</small></div>
+  <div><span>TODAY</span><b>{{data.today.visits}}</b><small>visits</small></div>
+  <div><span>TODAY</span><b>{{data.today.pageviews}}</b><small>pageviews</small></div>
+</section>
+
+<section class="card analytics-funnel-card">
+  <div class="cardhead">
+    <div>
+      <div class="eyebrow">CONVERSION FUNNEL</div>
+      <h2>From public traffic to completed AI run</h2>
+    </div>
+    <div class="funnel-total">
+      <b>{{data.funnel.completion_pct}}%</b>
+      <span>entry → completed</span>
+    </div>
   </div>
-  <div>
-    <span>ALL TIME</span>
-    <b>{{data.all_time.visits}}</b>
-    <small>visits</small>
+
+  <div class="funnel-grid">
+    {% for s in data.funnel.stages %}
+    <div class="funnel-stage">
+      <div class="funnel-stage-top">
+        <span>{{loop.index|string|replace('1','01') if loop.index < 10 else loop.index}}</span>
+        <b>{{s.visitors}}</b>
+      </div>
+      <h3>{{s.name}}</h3>
+      <div class="funnel-bar">
+        <i style="width:{{s.from_entry_pct}}%"></i>
+      </div>
+      <small>{{s.from_previous_pct}}% from previous · {{s.from_entry_pct}}% from entry</small>
+    </div>
+    {% endfor %}
   </div>
-  <div>
-    <span>ALL TIME</span>
-    <b>{{data.all_time.pageviews}}</b>
-    <small>pageviews</small>
+
+  <p class="muted funnel-note">{{data.funnel.note}}</p>
+</section>
+
+<section class="card">
+  <div class="cardhead">
+    <div><div class="eyebrow">CAMPAIGN FUNNEL</div><h2>Which traffic actually converts</h2></div>
   </div>
-  <div>
-    <span>TODAY</span>
-    <b>{{data.today.visitors}}</b>
-    <small>unique browsers</small>
-  </div>
-  <div>
-    <span>TODAY</span>
-    <b>{{data.today.visits}}</b>
-    <small>visits</small>
-  </div>
-  <div>
-    <span>TODAY</span>
-    <b>{{data.today.pageviews}}</b>
-    <small>pageviews</small>
+  <div class="tablewrap">
+    <table class="analytics-table">
+      <tr>
+        <th>Source / campaign</th><th>Entry</th><th>Test AI</th><th>Run</th>
+        <th>JSON</th><th>Completed</th><th>Completion</th>
+      </tr>
+      {% for row in data.funnel.campaigns %}
+      <tr>
+        <td>{{row.source}}</td>
+        <td>{{row.landing}}</td>
+        <td>{{row.test_ai}}</td>
+        <td>{{row.run_created}}</td>
+        <td>{{row.json_accepted}}</td>
+        <td>{{row.completed}}</td>
+        <td><b>{{row.completion_pct}}%</b></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">No attributable campaign traffic yet.</td></tr>
+      {% endfor %}
+    </table>
   </div>
 </section>
 
@@ -63,12 +97,8 @@
       </tr>
       {% for row in data.daily %}
       <tr>
-        <td>{{row.date}}</td>
-        <td>{{row.visitors}}</td>
-        <td>{{row.visits}}</td>
-        <td>{{row.pageviews}}</td>
-        <td>{{row.runs_started}}</td>
-        <td>{{row.runs_completed}}</td>
+        <td>{{row.date}}</td><td>{{row.visitors}}</td><td>{{row.visits}}</td>
+        <td>{{row.pageviews}}</td><td>{{row.runs_started}}</td><td>{{row.runs_completed}}</td>
       </tr>
       {% endfor %}
     </table>
@@ -109,6 +139,6 @@
   <b>Counting rules</b>
   <p><b>Unique browser</b> = anonymous first-party visitor cookie. Clearing cookies creates a new ID.</p>
   <p><b>Visit</b> = rolling 30-minute session. <b>Pageview</b> = one tracked human-like GET navigation.</p>
-  <p>No IP address or full user-agent is stored by this module.</p>
+  <p>Funnel attribution uses the browser→participant bridge created after a run begins. No IP address or full user-agent is stored.</p>
 </section>
 {% endblock %}

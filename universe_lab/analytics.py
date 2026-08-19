@@ -59,7 +59,6 @@ def _referrer_host():
         host = (urlparse(raw).hostname or "").lower()
     except Exception:
         host = ""
-    # Internal navigation is not an acquisition source.
     current_host = (request.host or "").split(":", 1)[0].lower()
     if not host or host == current_host:
         return None
@@ -79,7 +78,6 @@ def _should_track():
     ua = request.headers.get("User-Agent", "")
     if BOT_RE.search(ua):
         return False
-    # Track navigational/html requests, not fetches for machine endpoints.
     accept = request.headers.get("Accept", "")
     if accept and "text/html" not in accept and "*/*" not in accept:
         return False
@@ -101,7 +99,6 @@ def track_pageview():
     if not visit_id:
         visit_id = "S-" + secrets.token_hex(10)
 
-    # Refresh the 30-minute visit cookie on every tracked navigation.
     g.analytics_set_visit = visit_id
 
     payload = {
@@ -111,10 +108,11 @@ def track_pageview():
         "utm_source": _clip(request.args.get("utm_source"), 120),
         "utm_medium": _clip(request.args.get("utm_medium"), 120),
         "utm_campaign": _clip(request.args.get("utm_campaign"), 160),
+        # Once a lab participant exists, this creates the bridge:
+        # anonymous browser visitor -> participant -> experimental runs.
         "participant_id": _clip(session.get("participant_id"), 80),
     }
 
-    # Analytics must never break a user-facing page.
     try:
         with SessionLocal() as db:
             log_event(
@@ -126,6 +124,7 @@ def track_pageview():
             )
             db.commit()
     except Exception:
+        # Analytics must never break the public site.
         pass
 
 
@@ -179,6 +178,158 @@ def _local_date(dt, tz):
     return dt.astimezone(tz).date()
 
 
+def _pct(num, den):
+    if not den:
+        return 0.0
+    return round((num / den) * 100.0, 1)
+
+
+def _source_label(payload):
+    source = (payload.get("utm_source") or "").strip()
+    campaign = (payload.get("utm_campaign") or "").strip()
+    referrer = (payload.get("referrer_host") or "").strip()
+
+    if source:
+        return f"{source} / {campaign}" if campaign else source
+    if referrer:
+        return referrer
+    return "direct / unknown"
+
+
+def _build_funnel(page_events, all_events, runs):
+    # Browser visitor -> linked participant(s), inferred from pageviews after
+    # the participant session has been created.
+    visitor_to_participants = defaultdict(set)
+    participant_to_visitors = defaultdict(set)
+    visitor_source = {}
+
+    landing_visitors = set()
+    test_ai_visitors = set()
+
+    for e in page_events:
+        payload = _event_payload(e)
+        visitor = e.participant_id
+        if not visitor:
+            continue
+
+        path = payload.get("path") or "/"
+
+        # First-touch acquisition source.
+        if visitor not in visitor_source:
+            visitor_source[visitor] = _source_label(payload)
+        elif visitor_source[visitor] == "direct / unknown":
+            better = _source_label(payload)
+            if better != "direct / unknown":
+                visitor_source[visitor] = better
+
+        if path == "/":
+            landing_visitors.add(visitor)
+        if path == "/test-ai":
+            test_ai_visitors.add(visitor)
+
+        pid = payload.get("participant_id")
+        if pid:
+            visitor_to_participants[visitor].add(pid)
+            participant_to_visitors[pid].add(visitor)
+
+    bot_runs = [r for r in runs if r.study_key == "BOT_STRESS_V01"]
+    created_participants = {r.participant_id for r in bot_runs if r.participant_id}
+    completed_participants = {
+        r.participant_id for r in bot_runs
+        if r.participant_id and r.status == "completed"
+    }
+
+    base_done_participants = set()
+    completed_event_participants = set()
+    for e in all_events:
+        if e.event_type == "BOT_BASE_DONE" and e.participant_id:
+            base_done_participants.add(e.participant_id)
+        elif e.event_type == "BOT_COMPLETED" and e.participant_id:
+            completed_event_participants.add(e.participant_id)
+
+    def visitors_for_participants(pids):
+        out = set()
+        for pid in pids:
+            out.update(participant_to_visitors.get(pid, set()))
+        return out
+
+    created_visitors = visitors_for_participants(created_participants)
+    json_visitors = visitors_for_participants(base_done_participants)
+    completed_visitors = visitors_for_participants(
+        completed_event_participants | completed_participants
+    )
+
+    # Funnel denominator is tracked visitors that entered the public site.
+    # If somebody lands directly on /test-ai, include them in the entry cohort.
+    entry_visitors = landing_visitors | test_ai_visitors
+
+    stages = [
+        ("Landing", entry_visitors),
+        ("Test AI", test_ai_visitors),
+        ("Run created", created_visitors),
+        ("JSON accepted", json_visitors),
+        ("Completed", completed_visitors),
+    ]
+
+    stage_rows = []
+    previous_count = None
+    for name, visitors in stages:
+        count = len(visitors)
+        stage_rows.append({
+            "name": name,
+            "visitors": count,
+            "from_previous_pct": (
+                100.0 if previous_count is None
+                else _pct(count, previous_count)
+            ),
+            "from_entry_pct": _pct(count, len(entry_visitors)),
+        })
+        previous_count = count
+
+    # Per acquisition source/campaign.
+    source_members = defaultdict(set)
+    for v in entry_visitors:
+        source_members[visitor_source.get(v, "direct / unknown")].add(v)
+
+    campaign_rows = []
+    for source, members in source_members.items():
+        row = {
+            "source": source,
+            "landing": len(members),
+            "test_ai": len(members & test_ai_visitors),
+            "run_created": len(members & created_visitors),
+            "json_accepted": len(members & json_visitors),
+            "completed": len(members & completed_visitors),
+        }
+        row["completion_pct"] = _pct(row["completed"], row["landing"])
+        row["start_pct"] = _pct(row["run_created"], row["landing"])
+        campaign_rows.append(row)
+
+    campaign_rows.sort(
+        key=lambda x: (x["completed"], x["run_created"], x["landing"]),
+        reverse=True,
+    )
+
+    attributable_completed_runs = sum(
+        1 for r in bot_runs
+        if r.status == "completed"
+        and r.participant_id in participant_to_visitors
+    )
+
+    return {
+        "stages": stage_rows,
+        "entry_visitors": len(entry_visitors),
+        "completion_pct": _pct(len(completed_visitors), len(entry_visitors)),
+        "campaigns": campaign_rows[:25],
+        "attributable_completed_runs": attributable_completed_runs,
+        "note": (
+            "Funnel attribution starts when first-party traffic analytics was deployed. "
+            "Older experimental runs remain in totals but cannot be reliably attributed "
+            "to a historical browser/source."
+        ),
+    }
+
+
 def _analytics_snapshot(days=30):
     tz = ZoneInfo(ANALYTICS_TZ)
     now_local = datetime.now(timezone.utc).astimezone(tz)
@@ -202,10 +353,14 @@ def _analytics_snapshot(days=30):
             )
         ) or 0
 
-        events = db.scalars(
+        page_events = db.scalars(
             select(Event)
             .where(Event.event_type == EVENT_TYPE)
             .order_by(Event.created_at.asc())
+        ).all()
+
+        all_events = db.scalars(
+            select(Event).order_by(Event.created_at.asc())
         ).all()
 
         runs = db.scalars(
@@ -223,7 +378,7 @@ def _analytics_snapshot(days=30):
     referrers = Counter()
     campaigns = Counter()
 
-    for e in events:
+    for e in page_events:
         day = _local_date(e.created_at, tz)
         if day is None:
             continue
@@ -305,6 +460,7 @@ def _analytics_snapshot(days=30):
         "top_pages": [{"path": k, "pageviews": v} for k, v in pages.most_common(15)],
         "top_referrers": [{"source": k, "pageviews": v} for k, v in referrers.most_common(15)],
         "utm_sources": [{"source": k, "pageviews": v} for k, v in campaigns.most_common(15)],
+        "funnel": _build_funnel(page_events, all_events, runs),
         "definitions": {
             "unique_browsers": "First-party anonymous browser cookie; clearing cookies creates a new browser ID.",
             "visit": "30-minute rolling first-party visit cookie.",

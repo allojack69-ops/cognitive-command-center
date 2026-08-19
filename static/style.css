@@ -277,3 +277,150 @@ html{scroll-behavior:smooth}
   .analytics-kpis b{font-size:31px}
 }
 /* ===== Universe Lab Private Analytics v1.3 END ===== */
+
+/* ===== Universe Lab Funnel + State Field Visual v1.4 START ===== */
+.visual-public-hero,.visual-research-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.2fr) minmax(250px,.8fr);
+  gap:28px;
+  align-items:stretch;
+  max-width:none;
+}
+.visual-hero-copy{min-width:0}
+.state-field-visual{
+  position:relative;
+  margin:0;
+  min-height:420px;
+  border:1px solid #2a4057;
+  border-radius:24px;
+  overflow:hidden;
+  background:#070b10;
+  box-shadow:0 22px 60px rgba(0,0,0,.28);
+}
+.state-field-visual:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(5,9,14,.02),rgba(5,9,14,.36)),
+    radial-gradient(circle at 50% 20%,rgba(55,210,255,.06),transparent 55%);
+}
+.state-field-visual img{
+  width:100%;
+  height:100%;
+  min-height:420px;
+  display:block;
+  object-fit:cover;
+  filter:saturate(.95) contrast(1.06) brightness(.78);
+}
+.state-field-visual figcaption{
+  position:absolute;
+  z-index:2;
+  left:16px;
+  right:16px;
+  bottom:16px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:12px 13px;
+  border:1px solid rgba(139,239,201,.25);
+  border-radius:14px;
+  background:rgba(7,11,16,.72);
+  backdrop-filter:blur(10px);
+}
+.state-field-visual figcaption span{
+  color:var(--accent2);
+  font-size:9px;
+  letter-spacing:.15em;
+  font-weight:900;
+}
+.state-field-visual figcaption b{
+  color:var(--text);
+  font-size:11px;
+  font-weight:700;
+}
+.research-field-visual{min-height:330px}
+.research-field-visual img{min-height:330px}
+.analytics-funnel-card{overflow:hidden}
+.funnel-total{
+  min-width:130px;
+  text-align:right;
+}
+.funnel-total b{
+  display:block;
+  font-size:28px;
+  color:var(--accent2);
+}
+.funnel-total span{
+  color:var(--muted);
+  font-size:10px;
+}
+.funnel-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(120px,1fr));
+  gap:10px;
+  margin-top:18px;
+}
+.funnel-stage{
+  position:relative;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#0a1017;
+  padding:14px;
+}
+.funnel-stage-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.funnel-stage-top span{
+  color:var(--accent);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.12em;
+}
+.funnel-stage-top b{
+  font-size:27px;
+}
+.funnel-stage h3{
+  margin:12px 0 12px;
+  font-size:14px;
+}
+.funnel-bar{
+  height:5px;
+  overflow:hidden;
+  border-radius:99px;
+  background:#16202c;
+}
+.funnel-bar i{
+  display:block;
+  height:100%;
+  min-width:2px;
+  border-radius:99px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+}
+.funnel-stage small{
+  display:block;
+  margin-top:9px;
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.35;
+}
+.funnel-note{margin-top:14px;font-size:10px}
+@media(max-width:900px){
+  .visual-public-hero,.visual-research-hero{grid-template-columns:1fr}
+  .state-field-visual{min-height:300px;max-height:430px}
+  .state-field-visual img{min-height:300px;max-height:430px}
+  .funnel-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:520px){
+  .state-field-visual{min-height:270px;border-radius:20px}
+  .state-field-visual img{min-height:270px}
+  .public-field-visual img{object-position:center 28%}
+  .research-field-visual img{object-position:center 42%}
+  .funnel-grid{grid-template-columns:1fr}
+  .funnel-total{text-align:left}
+}
+/* ===== Universe Lab Funnel + State Field Visual v1.4 END ===== */

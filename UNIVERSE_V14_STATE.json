@@ -1,0 +1,21 @@
+{
+  "version": "1.4",
+  "scope": [
+    "private_conversion_funnel",
+    "state_field_visual_identity"
+  ],
+  "db_schema_changes": false,
+  "images_used_unchanged": true,
+  "assets": [
+    "static/universe/state_field_01.jpg",
+    "static/universe/state_field_02.jpg"
+  ],
+  "funnel": [
+    "public_entry",
+    "test_ai",
+    "bot_run_created",
+    "baseline_json_accepted",
+    "bot_run_completed"
+  ],
+  "backup": ".universe_lab_backup_v14_20260820-011609"
+}

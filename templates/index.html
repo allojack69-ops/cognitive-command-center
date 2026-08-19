@@ -3,27 +3,35 @@
 {% block content %}
 {% set ps=universe_public_stats() %}
 
-<section class="public-hero public-entry-hero">
-  <div class="eyebrow">OPEN HUMAN–AI RESEARCH PLATFORM</div>
-  <h1>Test your AI.<br>Compare how it thinks.</h1>
-  <p class="public-lead">
-    Bring ChatGPT, Gemini, Claude or another AI. Run a standardized protocol,
-    get a comparable result, and contribute structured observations to a shared Human–AI laboratory.
-  </p>
+<section class="public-hero public-entry-hero visual-public-hero">
+  <div class="visual-hero-copy">
+    <div class="eyebrow">OPEN HUMAN–AI RESEARCH PLATFORM</div>
+    <h1>Test your AI.<br>Compare how it thinks.</h1>
+    <p class="public-lead">
+      Bring ChatGPT, Gemini, Claude or another AI. Run a standardized protocol,
+      get a comparable result, and contribute structured observations to a shared Human–AI laboratory.
+    </p>
 
-  <div class="hero-actions public-entry-actions">
-    <a class="button primary public-primary public-cta-xl"
-       href="{{url_for('universe_public.test_ai')}}">TEST MY AI →</a>
-    <a class="button public-secondary"
-       href="{{url_for('universe_public.experiments')}}">Browse experiments</a>
+    <div class="hero-actions public-entry-actions">
+      <a class="button primary public-primary public-cta-xl"
+         href="{{url_for('universe_public.test_ai')}}">TEST MY AI →</a>
+      <a class="button public-secondary"
+         href="{{url_for('universe_public.experiments')}}">Browse experiments</a>
+    </div>
+
+    <div class="trust-row">
+      <span>No email required</span>
+      <span>Anonymous participant ID</span>
+      <span>Versioned protocols</span>
+      <span>JSON-validated AI runs</span>
+    </div>
   </div>
 
-  <div class="trust-row">
-    <span>No email required</span>
-    <span>Anonymous participant ID</span>
-    <span>Versioned protocols</span>
-    <span>JSON-validated AI runs</span>
-  </div>
+  <figure class="state-field-visual public-field-visual">
+    <img src="{{url_for('static',filename='universe/state_field_01.jpg')}}"
+         alt="Repeated colored state-field lattice">
+    <figcaption><span>STATE FIELD · 01</span><b>Local manifestations / shared geometry</b></figcaption>
+  </figure>
 </section>
 
 <section class="public-stats public-stats-entry" aria-label="Live laboratory activity">
@@ -34,38 +42,21 @@
 </section>
 
 <section class="public-value-strip">
-  <div>
-    <span class="value-index">01</span>
-    <div><b>Run a controlled test</b><p>Use the same protocol across different models or personalized states.</p></div>
-  </div>
-  <div>
-    <span class="value-index">02</span>
-    <div><b>Get a comparable run</b><p>Choices, confidence, follow-up behavior and derived signals stay tied to one versioned protocol.</p></div>
-  </div>
-  <div>
-    <span class="value-index">03</span>
-    <div><b>Feed the laboratory</b><p>Your submitted run becomes part of the shared research dataset under an anonymous participant ID.</p></div>
-  </div>
+  <div><span class="value-index">01</span><div><b>Run a controlled test</b><p>Use the same protocol across different models or personalized states.</p></div></div>
+  <div><span class="value-index">02</span><div><b>Get a comparable run</b><p>Choices, confidence, follow-up behavior and derived signals stay tied to one versioned protocol.</p></div></div>
+  <div><span class="value-index">03</span><div><b>Feed the laboratory</b><p>Your submitted run becomes part of the shared research dataset under an anonymous participant ID.</p></div></div>
 </section>
 
 <section class="section-head section-gap">
-  <div>
-    <div class="eyebrow">PUBLIC TESTS</div>
-    <h2>Start with one run.</h2>
-  </div>
+  <div><div class="eyebrow">PUBLIC TESTS</div><h2>Start with one run.</h2></div>
   <a href="{{url_for('universe_public.experiments')}}">See all protocols →</a>
 </section>
 
 <div class="public-feature-grid">
   {% for p in universe_public_projects %}
   <a class="public-feature-card" href="{{url_for(p.endpoint)}}">
-    <div class="projecttop">
-      <span class="projectnum">{{p.number}}</span>
-      <span class="projectstatus">{{p.status}}</span>
-    </div>
-    <h3>{{p.title}}</h3>
-    <p>{{p.subtitle}}</p>
-    <strong>{{p.cta}} →</strong>
+    <div class="projecttop"><span class="projectnum">{{p.number}}</span><span class="projectstatus">{{p.status}}</span></div>
+    <h3>{{p.title}}</h3><p>{{p.subtitle}}</p><strong>{{p.cta}} →</strong>
   </a>
   {% endfor %}
 </div>
@@ -74,10 +65,7 @@
   <div>
     <div class="eyebrow">ONE SYSTEM, THREE DEPTHS</div>
     <h2>Public → Lab → Research</h2>
-    <p>
-      Public tests minimize friction. Lab protocols add control.
-      Research systems expose MOR, Observer, Mesh, model geometry and unified datasets.
-    </p>
+    <p>Public tests minimize friction. Lab protocols add control. Research systems expose MOR, Observer, Mesh, model geometry and unified datasets.</p>
   </div>
   <div class="hero-actions compact-actions">
     <a class="button" href="{{url_for('universe_lab.home')}}">Open Lab</a>
@@ -124,10 +112,7 @@
 {% endif %}
 
 <div class="participant-note">
-  {% if participant %}
-    Anonymous participant: <b>{{participant.id}}</b>
-  {% else %}
-    Your anonymous participant ID is created when you start your first run.
-  {% endif %}
+  {% if participant %}Anonymous participant: <b>{{participant.id}}</b>
+  {% else %}Your anonymous participant ID is created when you start your first run.{% endif %}
 </div>
 {% endblock %}

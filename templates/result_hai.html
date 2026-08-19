@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}
+<div class="eyebrow">COMPLETE · {{run.id}}</div><h1>Human ↔ {{run.model_label}}</h1>
+<div class="metricgrid">
+<div class="metric"><b>{{"%.0f"|format(m.alignment_rate*100) if m.alignment_rate is not none else "—"}}%</b><span>Human–AI base alignment</span></div>
+<div class="metric"><b>{{m.human_state_flips}}/6</b><span>Human state flips</span></div>
+<div class="metric"><b>{{m.ai_state_flips}}/6</b><span>AI state flips</span></div>
+<div class="metric"><b>{{m.human_efp_core_mean}} / {{m.ai_efp_core_mean}}</b><span>Human / AI EFP core mean</span></div>
+</div>
+<section class="card"><h2>Matched pairs</h2><table><tr><th>Pair</th><th>Human flip</th><th>AI flip</th></tr>
+{% for x in m.pairs %}<tr><td>{{x.pair_id}}</td><td>{{x.human_changed}}</td><td>{{x.ai_changed}}</td></tr>{% endfor %}</table></section>
+<p class="muted">EFP4 збережено як diagnostic/ambiguous і не включено в core score.</p>{% endblock %}

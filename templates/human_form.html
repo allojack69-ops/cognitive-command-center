@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block content %}
+<div class="eyebrow">{{run.id}}</div><h1>{{title}}</h1>
+<p class="muted">Відповідай швидко й природно. Тут немає оцінки «правильно/неправильно».</p>
+<form method="post" class="card">
+{% for it in items %}
+<div class="question">
+<b>{{loop.index}}. {% if follow %}{{it.surprise}}{% else %}{{it.human_text}}{% endif %}</b>
+{% set opts=it.update_options if follow else it.options %}
+{% for k,v in opts.items() %}<label class="option"><input required type="radio" name="choice_{{it.id}}" value="{{k}}"> <strong>{{k}}</strong> {{v}}</label>{% endfor %}
+<label class="confidence">Confidence <select name="conf_{{it.id}}" required><option value="">—</option>{% for n in [50,60,70,80,90,100] %}<option>{{n}}</option>{% endfor %}</select>%</label>
+</div>{% endfor %}
+<button class="primary">Далі →</button></form>{% endblock %}

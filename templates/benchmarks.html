@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}
+<div class="eyebrow">EXTERNAL HUMAN DATA</div><h1>Benchmark Lab</h1>
+<p>Тут зовнішні людські дані не змішуються з Human–AI pairs: вони є окремою віссю зовнішнього калібрування.</p>
+<section class="card"><h2>Встановлені benchmark packs</h2>
+<div class="grid2">{% for p in packs %}<div class="subcard"><h3>{{p.name}}</h3><p class="muted">{{p.source_name or ""}}</p><p>{{p.license_note or ""}}</p>
+<a class="button" href="{{url_for('benchmark_new',pack_id=p.id)}}">Запустити бота →</a></div>{% endfor %}</div></section>
+<section class="card"><h2>Research source registry</h2><div class="tablewrap"><table><tr><th>Source</th><th>Type</th><th>Status</th><th>Note</th></tr>
+{% for s in sources %}<tr><td><a href="{{s.source_url}}" target="_blank" rel="noopener">{{s.name}}</a></td><td>{{s.kind}}</td><td><span class="pill">{{s.status}}</span></td><td>{{s.note}}</td></tr>{% endfor %}
+</table></div></section>
+{% if session.admin %}<a class="button" href="{{url_for('admin_benchmark_import')}}">Імпортувати benchmark pack</a>{% endif %}
+{% endblock %}

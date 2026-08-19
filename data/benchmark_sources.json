@@ -1,0 +1,47 @@
+[
+  {
+    "key": "moral_machine",
+    "name": "Moral Machine",
+    "kind": "public_human_decisions",
+    "status": "adapter_planned",
+    "source_url": "https://www.nature.com/articles/s41586-018-0637-6",
+    "data_url": "https://www.nature.com/articles/s41586-018-0637-6#data-availability",
+    "note": "40M decisions; public data described by the paper. Import only from the official/public release and preserve source metadata."
+  },
+  {
+    "key": "ethics",
+    "name": "ETHICS",
+    "kind": "benchmark",
+    "status": "adapter_planned",
+    "source_url": "https://github.com/hendrycks/ethics",
+    "data_url": "https://github.com/hendrycks/ethics",
+    "note": "Justice, deontology, virtue, utilitarianism and commonsense morality. MIT repository; verify dataset-specific terms before redistribution."
+  },
+  {
+    "key": "scruples",
+    "name": "Scruples",
+    "kind": "human_judgments",
+    "status": "adapter_planned",
+    "source_url": "https://github.com/allenai/scruples",
+    "data_url": "https://github.com/allenai/scruples",
+    "note": "32k real-life anecdotes and 10k paired dilemmas. Repository states research-use intent; keep provenance and do not treat community judgments as universal morality."
+  },
+  {
+    "key": "wvs7",
+    "name": "World Values Survey Wave 7",
+    "kind": "population_survey",
+    "status": "admin_import",
+    "source_url": "https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp",
+    "data_url": "https://www.worldvaluessurvey.org/WVSDocumentationWV7.jsp",
+    "note": "Large cross-national survey. Do not mirror raw files automatically; import only data you are permitted to use and store citation/license notes."
+  },
+  {
+    "key": "ess11",
+    "name": "European Social Survey Round 11",
+    "kind": "population_survey",
+    "status": "admin_import",
+    "source_url": "https://www.europeansocialsurvey.org/data-portal",
+    "data_url": "https://www.europeansocialsurvey.org/data-portal",
+    "note": "Cross-national survey data. Import through the admin benchmark-pack format while preserving edition/country metadata."
+  }
+]

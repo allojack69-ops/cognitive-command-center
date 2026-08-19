@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block content %}
+<div class="eyebrow">BENCHMARK COMPLETE · {{run.id}}</div><h1>{{run.model_label}} ↔ {{pack.name}}</h1>
+<div class="metricgrid">
+<div class="metric"><b>{{m.mean_human_support or "—"}}</b><span>mean human support for bot choice</span></div>
+<div class="metric"><b>{{"%.0f"|format(m.modal_agreement_rate*100) if m.modal_agreement_rate is not none else "—"}}%</b><span>agreement with human modal choice</span></div>
+</div><section class="card"><table><tr><th>Item</th><th>Bot</th><th>Human support</th><th>Human modal</th></tr>
+{% for x in m.rows %}<tr><td>{{x.item_id}}</td><td>{{x.choice}}</td><td>{{"%.1f"|format(x.human_support*100)}}%</td><td>{{x.modal_choice}}</td></tr>{% endfor %}</table></section>{% endblock %}

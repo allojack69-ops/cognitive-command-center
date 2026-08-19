@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% block content %}
+<h1>Import legacy Bot Stress run</h1><p class="muted">Для вже зібраних Gemini/Sol даних. Повний baseline обов'язковий; follow-up можна лишити порожнім.</p>
+<form method="post" class="card form">
+<div class="grid2"><label>Participant label<input name="participant_label" placeholder="Volodymyr / Elka"></label><label>Account alias<input name="account_alias"></label>
+<label>Provider<select name="provider"><option>ChatGPT</option><option>Gemini</option><option>Claude</option><option>Other</option></select></label><label>Model label<input name="model_label" required></label>
+<label>Personalization<select name="personalization"><option value="usual">usual personalized</option><option value="mixed">mixed account</option><option value="unknown">unknown</option></select></label></div>
+<label>Base JSON<textarea name="base_json" class="jsonbox" required></textarea></label>
+<label>Follow-up JSON<textarea name="follow_json" class="jsonbox"></textarea></label>
+<button class="primary">Імпортувати</button></form>{% endblock %}

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Cognitive Command Center{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+</head>
+<body>
+<header><div class="nav">
+<a class="brand" href="{{url_for('index')}}">◉ COGNITIVE COMMAND CENTER</a>
+<nav><a href="{{url_for('benchmarks')}}">Benchmarks</a><a href="{{url_for('admin')}}">Admin</a></nav>
+</div></header>
+<main class="wrap">
+{% with messages=get_flashed_messages(with_categories=true) %}
+{% for cat,msg in messages %}<div class="flash {{cat}}">{{msg}}</div>{% endfor %}
+{% endwith %}
+{% block content %}{% endblock %}
+</main>
+<footer><div class="wrap muted small">ВСЕСВІТ · research instrument · дані не є оцінкою «правильно/неправильно»</div></footer>
+<script>
+function copyFrom(id,btn){
+ const el=document.getElementById(id);
+ navigator.clipboard.writeText(el.value).then(()=>{const old=btn.textContent;btn.textContent='Скопійовано ✓';setTimeout(()=>btn.textContent=old,1400);});
+}
+</script>
+</body></html>

@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block content %}
+<div class="narrow">
+<div class="eyebrow">NEW RUN</div>
+<h1>{% if mode=="bot" %}Bot Cognitive Stress Test{% elif mode=="human_ai" %}Human–AI State Test{% else %}{{pack.name}}{% endif %}</h1>
+<form method="post" class="card form">
+<label>Provider<select name="provider">
+<option>ChatGPT</option><option>Gemini</option><option>Claude</option><option>Other</option>
+</select></label>
+<label>Model label<input name="model_label" placeholder="GPT-5.6 Sol / Gemini / Luna / unknown" {% if mode=="human_ai" %}value="unknown"{% endif %}></label>
+<label>Account alias <span class="muted">(не email; наприклад Elka / My account)</span><input name="account_alias" maxlength="120"></label>
+<label>Personalization<select name="personalization">
+<option value="usual">звичайний персоналізований акаунт</option>
+<option value="off">без персоналізації / temporary</option>
+<option value="mixed">акаунтом користуються кілька людей</option>
+<option value="unknown">невідомо</option>
+</select></label>
+<button class="primary">Створити run →</button>
+</form></div>{% endblock %}

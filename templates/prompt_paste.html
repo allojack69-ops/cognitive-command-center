@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block content %}
+<div class="eyebrow">{{step}} · {{run.id}}</div><h1>{{title}}</h1>
+{% if same_chat %}<div class="notice">⚠️ Встав цей prompt у <b>ТОЙ САМИЙ чат</b>, де модель дала baseline.</div>{% else %}
+<div class="notice">Відкрий новий звичайний чат потрібної моделі → скопіюй prompt → встав відповідь сюди.</div>{% endif %}
+<div class="split">
+<section class="card"><div class="cardhead"><h2>Prompt</h2><button type="button" onclick="copyFrom('prompt',this)">Скопіювати</button></div>
+<textarea id="prompt" class="prompt" readonly>{{prompt}}</textarea></section>
+<section class="card"><h2>Встав JSON відповіді</h2><form method="post">
+<textarea name="json" class="jsonbox" placeholder='{"answers":{...}}' required>{{json_value}}</textarea>
+<button class="primary">{{next_label}} →</button></form>
+<p class="muted small">Validator не пропустить неповний run або неправильний формат.</p></section>
+</div>{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% block content %}
+<div class="eyebrow">COMPLETE · {{run.id}}</div><h1>{{run.model_label}}</h1>
+<div class="metricgrid">
+<div class="metric"><b>{{m.state_flips}}/{{m.state_pairs_n}}</b><span>state pair flips</span></div>
+<div class="metric"><b>{{"%.0f"|format(m.frame_nonaccept_rate*100) if m.frame_nonaccept_rate is not none else "—"}}%</b><span>frame non-accept</span></div>
+<div class="metric"><b>{{m.followup_choice_changes}}/{{m.followup_comparable_n}}</b><span>follow-up policy changes</span></div>
+<div class="metric"><b>{{m.mean_confidence or "—"}}</b><span>mean confidence</span></div>
+</div>
+<section class="card"><h2>State thresholds</h2><div class="tablewrap"><table><tr><th>Pair</th><th>Axis</th><th>A</th><th>B</th><th>Flip</th></tr>
+{% for x in m.pairs %}<tr><td>{{x.pair_id}}</td><td>{{x.axis}}</td><td>{{x.a}}</td><td>{{x.b}}</td><td>{{"YES" if x.changed else "NO"}}</td></tr>{% endfor %}
+</table></div></section>
+<section class="card"><h2>Update dynamics</h2><div class="tablewrap"><table><tr><th>Item</th><th>Before</th><th>After</th><th>Type</th><th>Δ confidence</th></tr>
+{% for x in m.followups %}<tr><td>{{x.item_id}}</td><td>{{x.previous or "—"}}</td><td>{{x.new}}</td><td><span class="pill">{{x.update_type}}</span></td><td>{{x.confidence_delta if x.confidence_delta is not none else "—"}}</td></tr>{% endfor %}
+</table></div></section>
+<a class="button" href="{{url_for('bot_new')}}">+ Новий bot run</a>{% endblock %}

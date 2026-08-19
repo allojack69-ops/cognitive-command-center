@@ -1,0 +1,3 @@
+{% extends "base.html" %}{% block content %}<h1>Import benchmark pack</h1>
+<div class="notice">Не завантажуй сюди dataset, якщо його ліцензія не дозволяє зберігання/перерозповсюдження. Можна імпортувати дозволені похідні агрегати human_distribution.</div>
+<form method="post" class="card"><textarea class="jsonbox tall" name="pack_json" required placeholder='{"benchmark_id":"...","name":"...","items":[...]} '></textarea><button class="primary">Validate + import</button></form>{% endblock %}

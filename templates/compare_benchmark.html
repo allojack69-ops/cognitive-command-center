@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+
+{% block title %}
+External Benchmark Comparison
+{% endblock %}
+
+{% block content %}
+
+<div class="eyebrow">
+EXTERNAL BENCHMARK COMPARISON
+</div>
+
+<h1>{{pack.name}}</h1>
+
+<p class="muted">
+Participant: {{participant_label}}
+</p>
+
+{% if packdata.caveat %}
+<p class="muted small">
+{{packdata.caveat}}
+</p>
+{% endif %}
+
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>{{summary.models}}</b>
+<span>models / runs</span>
+</div>
+
+<div class="metric">
+<b>{{summary.consensus_match}}</b>
+<span>consensus MATCH axes</span>
+</div>
+
+<div class="metric">
+<b>{{summary.consensus_abstain}}</b>
+<span>consensus ABSTAIN axes</span>
+</div>
+
+<div class="metric">
+<b>{{summary.consensus_opposite}}</b>
+<span>consensus OPPOSITE axes</span>
+</div>
+
+<div class="metric">
+<b>{{summary.boundary_split}}</b>
+<span>boundary splits</span>
+</div>
+
+<div class="metric">
+<b>
+{% if summary.mean_pairwise is not none %}
+{{summary.mean_pairwise}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>mean pairwise agreement</span>
+</div>
+
+</div>
+
+
+<section class="card">
+
+<div class="eyebrow">
+NORMATIVE BOUNDARY PROFILES
+</div>
+
+<h2>Профілі моделей</h2>
+
+<div class="modelcompare">
+
+{% for m in model_rows %}
+
+<div class="modelcard">
+
+<div class="eyebrow">
+{{m.provider}}
+</div>
+
+<h3>{{m.model}}</h3>
+
+<div class="modelmeta">
+{{m.account}} · {{m.personalization}}
+</div>
+
+<div class="mini-grid">
+
+<div>
+<b>{{m.match}}</b>
+<span>MATCH</span>
+</div>
+
+<div>
+<b>{{m.abstain}}</b>
+<span>ABSTAIN</span>
+</div>
+
+<div>
+<b>{{m.opposite}}</b>
+<span>OPPOSITE</span>
+</div>
+
+<div>
+<b>
+{% if m.conditional is not none %}
+{{m.conditional}}%
+{% else %}
+—
+{% endif %}
+</b>
+<span>conditional alignment</span>
+</div>
+
+<div>
+<b>
+{{m.conf_match
+  if m.conf_match is not none
+  else "—"}}
+</b>
+<span>confidence MATCH</span>
+</div>
+
+<div>
+<b>
+{{m.conf_abstain
+  if m.conf_abstain is not none
+  else "—"}}
+</b>
+<span>confidence ABSTAIN</span>
+</div>
+
+</div>
+
+<a class="small"
+   href="{{url_for(
+      'benchmark_result',
+      run_id=m.run_id
+   )}}">
+відкрити run →
+</a>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</section>
+
+
+<section class="card boundary-card">
+
+<div class="eyebrow">
+BOUNDARY SPLITS
+</div>
+
+<h2>Де моделі проводять межу по-різному</h2>
+
+{% if split_rows %}
+
+<div class="tablewrap">
+
+<table class="compare-table">
+
+<tr>
+<th>Axis</th>
+
+{% for m in model_rows %}
+<th>{{m.model}}</th>
+{% endfor %}
+
+</tr>
+
+{% for row in split_rows %}
+
+<tr class="split-row">
+
+<td>
+
+<b>{{row.id}}</b>
+
+<div class="small">
+{{row.dimension}}
+</div>
+
+<div class="tiny muted">
+Human reference:
+{{row.reference_label}}
+</div>
+
+</td>
+
+{% for cell in row.cells %}
+
+<td>
+
+<div class="choice-big">
+{{cell.choice}}
+</div>
+
+<div class="
+{% if cell.relation == 'MATCH' %}
+check-pass
+{% elif cell.relation == 'OPPOSITE' %}
+check-fail
+{% else %}
+pill
+{% endif %}
+">
+{{cell.relation}}
+</div>
+
+{% if cell.confidence is not none %}
+<div class="small">
+conf {{cell.confidence}}
+</div>
+{% endif %}
+
+{% if cell.reason %}
+<div class="tiny muted boundary-reason">
+{{cell.reason}}
+</div>
+{% endif %}
+
+</td>
+
+{% endfor %}
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+{% else %}
+
+<p>
+Усі моделі провели нормативну межу однаково.
+</p>
+
+{% endif %}
+
+</section>
+
+
+<section class="card">
+
+<div class="eyebrow">
+CONSENSUS AXES
+</div>
+
+<h2>Спільне нормативне ядро</h2>
+
+<div class="tablewrap">
+
+<table class="compare-table">
+
+<tr>
+<th>Axis</th>
+<th>Consensus</th>
+
+{% for m in model_rows %}
+<th>{{m.model}}</th>
+{% endfor %}
+
+</tr>
+
+{% for row in consensus_rows %}
+
+<tr>
+
+<td>
+
+<b>{{row.id}}</b>
+
+<div class="small">
+{{row.dimension}}
+</div>
+
+<div class="tiny muted">
+{{row.reference_label}}
+</div>
+
+</td>
+
+<td>
+
+{% if row.class == "MATCH" %}
+<span class="check-pass">
+MATCH
+</span>
+
+{% elif row.class == "ABSTAIN" %}
+<span class="pill">
+ABSTAIN
+</span>
+
+{% elif row.class == "OPPOSITE" %}
+<span class="check-fail">
+OPPOSITE
+</span>
+{% endif %}
+
+</td>
+
+{% for cell in row.cells %}
+
+<td>
+<b>{{cell.choice}}</b>
+
+{% if cell.confidence is not none %}
+<div class="tiny muted">
+{{cell.confidence}}%
+</div>
+{% endif %}
+</td>
+
+{% endfor %}
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<h2>Pairwise agreement</h2>
+
+<div class="tablewrap">
+
+<table>
+
+<tr>
+<th>Model A</th>
+<th>Model B</th>
+<th>Same choice</th>
+<th>Agreement</th>
+</tr>
+
+{% for p in pairwise %}
+
+<tr>
+
+<td>{{p.left}}</td>
+
+<td>{{p.right}}</td>
+
+<td>
+{{p.same}} / {{p.total}}
+</td>
+
+<td>
+{% if p.rate is not none %}
+<b>{{p.rate}}%</b>
+{% else %}
+—
+{% endif %}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<section class="card">
+
+<h2>Повна матриця</h2>
+
+<div class="tablewrap">
+
+<table class="compare-table">
+
+<tr>
+<th>Axis</th>
+<th>Reference</th>
+
+{% for m in model_rows %}
+<th>{{m.model}}</th>
+{% endfor %}
+
+</tr>
+
+{% for row in item_rows %}
+
+<tr class="
+{% if row.class == 'SPLIT' %}
+split-row
+{% endif %}
+">
+
+<td>
+
+<b>{{row.id}}</b>
+
+<div class="small">
+{{row.dimension}}
+</div>
+
+</td>
+
+<td>
+
+<b>{{row.reference_choice}}</b>
+
+<div class="tiny muted">
+{{row.reference_label}}
+</div>
+
+</td>
+
+{% for cell in row.cells %}
+
+<td>
+
+<div class="choice-big">
+{{cell.choice}}
+</div>
+
+<div class="tiny">
+{{cell.relation}}
+</div>
+
+{% if cell.confidence is not none %}
+<div class="tiny muted">
+conf {{cell.confidence}}
+</div>
+{% endif %}
+
+</td>
+
+{% endfor %}
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</section>
+
+
+<div class="toolbar">
+
+<a class="button"
+href="{{url_for(
+    'benchmark_new',
+    pack_id=pack.id
+)}}">
++ Ще одна модель
+</a>
+
+<a class="button"
+href="{{url_for('benchmarks')}}">
+← Benchmark Lab
+</a>
+
+</div>
+
+{% endblock %}

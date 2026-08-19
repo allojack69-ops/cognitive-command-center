@@ -43,26 +43,98 @@ def seed_benchmarks():
             if not path.exists():
                 continue
 
-            pack=json.loads(path.read_text(encoding="utf-8"))
+            pack=json.loads(
+                path.read_text(
+                    encoding="utf-8"
+                )
+            )
 
-            if db.get(BenchmarkPack,pack["benchmark_id"]):
-                continue
+            row=db.get(
+                BenchmarkPack,
+                pack["benchmark_id"]
+            )
 
-            db.add(BenchmarkPack(
-                id=pack["benchmark_id"],
-                name=pack["name"],
-                version=pack.get("version","1"),
-                source_name=pack.get("source_name"),
-                source_url=pack.get("source_url"),
-                license_note=pack.get("license_note"),
-                pack_json=json.dumps(pack,ensure_ascii=False)
-            ))
-            changed=True
+            if not row:
+                row=BenchmarkPack(
+                    id=pack["benchmark_id"],
+                    name=pack["name"],
+                    pack_json="{}"
+                )
+
+                db.add(row)
+
+            # Built-in packs are code-versioned.
+            # Keep DB representation synchronized
+            # with the repository file.
+            fresh_json=json.dumps(
+                pack,
+                ensure_ascii=False
+            )
+
+            if (
+                row.name != pack["name"]
+                or row.version
+                    != str(
+                        pack.get(
+                            "version",
+                            "1"
+                        )
+                    )
+                or row.source_name
+                    != pack.get(
+                        "source_name"
+                    )
+                or row.source_url
+                    != pack.get(
+                        "source_url"
+                    )
+                or row.license_note
+                    != pack.get(
+                        "license_note"
+                    )
+                or row.pack_json
+                    != fresh_json
+            ):
+                row.name=pack["name"]
+
+                row.version=str(
+                    pack.get(
+                        "version",
+                        "1"
+                    )
+                )
+
+                row.source_name=(
+                    pack.get(
+                        "source_name"
+                    )
+                )
+
+                row.source_url=(
+                    pack.get(
+                        "source_url"
+                    )
+                )
+
+                row.license_note=(
+                    pack.get(
+                        "license_note"
+                    )
+                )
+
+                row.pack_json=(
+                    fresh_json
+                )
+
+                changed=True
 
         if changed:
             db.commit()
 
 seed_benchmarks()
+
+from benchmark_compare import bp as benchmark_compare_bp
+app.register_blueprint(benchmark_compare_bp)
 
 def current_participant(db):
     pid=session.get("participant_id")

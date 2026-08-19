@@ -1,7 +1,3 @@
-
-cd ~/cognitive-command-center
-
-cat > quality_checks.py <<'PY'
 import re
 
 

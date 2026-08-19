@@ -12,6 +12,8 @@
 <section class="card"><h2>Update dynamics</h2><div class="tablewrap"><table><tr><th>Item</th><th>Before</th><th>After</th><th>Type</th><th>Δ confidence</th></tr>
 {% for x in m.followups %}<tr><td>{{x.item_id}}</td><td>{{x.previous or "—"}}</td><td>{{x.new}}</td><td><span class="pill">{{x.update_type}}</span></td><td>{{x.confidence_delta if x.confidence_delta is not none else "—"}}</td></tr>{% endfor %}
 </table></div></section>
+{% include "_recovery.html" %}
+
 <div class="toolbar">
 <a class="button" href="{{url_for('compare_models')}}">
 ⇄ Порівняти мої моделі

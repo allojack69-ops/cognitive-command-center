@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}
+Відновити research-профіль
+{% endblock %}
+
+{% block content %}
+
+<div class="eyebrow">
+RECOVERY
+</div>
+
+<h1>Продовжити свої тести</h1>
+
+<section class="card">
+
+{% if same %}
+
+<h2>Цей профіль уже активний ✓</h2>
+
+<p class="muted">
+На цьому пристрої вже використовується той самий
+анонімний participant.
+</p>
+
+<a class="button" href="{{url_for('index')}}">
+Перейти до штабу →
+</a>
+
+{% else %}
+
+<h2>Знайдено твій анонімний профіль</h2>
+
+<div class="metricgrid">
+
+<div class="metric">
+<b>{{completed}}</b>
+<span>завершених дослідницьких тестів</span>
+</div>
+
+</div>
+
+<p class="muted">
+Після підтвердження цей браузер продовжить роботу
+з тим самим participant і побачить пов’язані з ним runs.
+</p>
+
+<form method="post">
+
+<button class="button" type="submit">
+Продовжити як цей participant →
+</button>
+
+</form>
+
+{% endif %}
+
+</section>
+
+{% endblock %}

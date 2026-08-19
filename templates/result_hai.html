@@ -8,4 +8,5 @@
 </div>
 <section class="card"><h2>Matched pairs</h2><table><tr><th>Pair</th><th>Human flip</th><th>AI flip</th></tr>
 {% for x in m.pairs %}<tr><td>{{x.pair_id}}</td><td>{{x.human_changed}}</td><td>{{x.ai_changed}}</td></tr>{% endfor %}</table></section>
-<p class="muted">EFP4 збережено як diagnostic/ambiguous і не включено в core score.</p>{% endblock %}
+<p class="muted">EFP4 збережено як diagnostic/ambiguous і не включено в core score.</p>
+{% include "_recovery.html" %}{% endblock %}

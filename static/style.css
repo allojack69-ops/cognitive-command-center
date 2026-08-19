@@ -163,3 +163,33 @@ color:#c7d6e5;
 font-size:13px;
 line-height:1.5;
 }
+
+/* ==========================================================
+   Participant recovery
+   ========================================================== */
+
+.recovery-card{
+margin-top:24px;
+}
+
+.copyrow{
+display:flex;
+gap:10px;
+align-items:stretch;
+margin:14px 0;
+}
+
+.copyrow input{
+min-width:0;
+flex:1;
+}
+
+.copyrow button{
+white-space:nowrap;
+}
+
+@media (max-width:640px){
+.copyrow{
+flex-direction:column;
+}
+}

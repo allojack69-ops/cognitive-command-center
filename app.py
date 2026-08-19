@@ -6,6 +6,7 @@ from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, abort
 from sqlalchemy import select, func
 from werkzeug.middleware.proxy_fix import ProxyFix
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 from db import init_db, SessionLocal, Participant, Run, Answer, BenchmarkPack, log_event, utcnow
 from studies import (
@@ -54,6 +55,31 @@ def current_participant(db):
 
 def new_run_id():
     return "R-"+secrets.token_hex(8)
+
+
+RECOVERY_SALT="participant-recovery-v1"
+RECOVERY_MAX_AGE=365*24*60*60
+
+
+def recovery_serializer():
+    return URLSafeTimedSerializer(
+        app.secret_key,
+        salt=RECOVERY_SALT
+    )
+
+
+def make_recovery_token(participant_id):
+    return recovery_serializer().dumps({
+        "participant_id":participant_id
+    })
+
+
+def recovery_link_for(participant_id):
+    return url_for(
+        "recover_participant",
+        token=make_recovery_token(participant_id),
+        _external=True
+    )
 
 def admin_required(fn):
     @wraps(fn)
@@ -168,6 +194,79 @@ def index():
 
     return render_template("index.html",participant=p,runs=my_runs,stats=stats)
 
+@app.route("/recover/<token>",methods=["GET","POST"])
+def recover_participant(token):
+    try:
+        payload=recovery_serializer().loads(
+            token,
+            max_age=RECOVERY_MAX_AGE
+        )
+    except SignatureExpired:
+        return render_template(
+            "message.html",
+            title="Посилання прострочене",
+            message="Це recovery-посилання вже не діє."
+        ),410
+    except BadSignature:
+        return render_template(
+            "message.html",
+            title="Некоректне посилання",
+            message="Recovery-посилання пошкоджене або недійсне."
+        ),403
+
+    participant_id=payload.get("participant_id")
+
+    if not participant_id:
+        abort(403)
+
+    with SessionLocal() as db:
+        p=db.get(Participant,participant_id)
+
+        if not p:
+            abort(404)
+
+        completed=db.scalar(
+            select(func.count())
+            .select_from(Run)
+            .where(
+                Run.participant_id==p.id,
+                Run.status=="completed",
+                ~Run.study_key.like("BENCHMARK:%")
+            )
+        ) or 0
+
+        same=session.get("participant_id")==p.id
+
+        if request.method=="POST":
+            previous=session.get("participant_id")
+            session["participant_id"]=p.id
+
+            log_event(
+                db,
+                "PARTICIPANT_RECOVERED",
+                participant_id=p.id,
+                payload={
+                    "previous_participant_id":
+                        previous if previous!=p.id else None
+                }
+            )
+            db.commit()
+
+            flash(
+                "Анонімний профіль відновлено ✓",
+                "ok"
+            )
+
+            return redirect(url_for("index"))
+
+    return render_template(
+        "recover.html",
+        participant=p,
+        completed=completed,
+        same=same
+    )
+
+
 @app.route("/bot/new",methods=["GET","POST"])
 def bot_new():
     if request.method=="POST":
@@ -236,7 +335,13 @@ def bot_result(run_id):
         p=current_participant(db)
         if run.participant_id!=p.id and not session.get("admin"): abort(403)
         metrics=bot_metrics(run.answers)
-    return render_template("result_bot.html",run=run,m=metrics)
+        recovery_link=recovery_link_for(run.participant_id)
+    return render_template(
+        "result_bot.html",
+        run=run,
+        m=metrics,
+        recovery_link=recovery_link
+    )
 
 
 @app.get("/compare")
@@ -698,7 +803,13 @@ def hai_result(run_id):
         p=current_participant(db)
         if run.participant_id!=p.id and not session.get("admin"): abort(403)
         metrics=human_ai_metrics(run.answers)
-    return render_template("result_hai.html",run=run,m=metrics)
+        recovery_link=recovery_link_for(run.participant_id)
+    return render_template(
+        "result_hai.html",
+        run=run,
+        m=metrics,
+        recovery_link=recovery_link
+    )
 
 @app.get("/benchmarks")
 def benchmarks():

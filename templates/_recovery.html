@@ -1,0 +1,40 @@
+{% if recovery_link %}
+<section class="card recovery-card">
+
+<div class="eyebrow">
+OPTIONAL · RECOVERY
+</div>
+
+<h2>Продовжити на іншому пристрої</h2>
+
+<p class="muted">
+Нічого запам’ятовувати або вводити не потрібно.
+Скопіюй це приватне посилання, якщо хочеш пізніше
+продовжити свої тести з іншого телефона чи браузера.
+</p>
+
+<div class="copyrow">
+<input
+    id="recovery-link"
+    type="text"
+    value="{{recovery_link}}"
+    readonly
+    autocomplete="off"
+    spellcheck="false"
+>
+
+<button
+    type="button"
+    onclick="copyFrom('recovery-link',this)"
+>
+Скопіювати посилання
+</button>
+</div>
+
+<p class="muted tiny">
+Посилання відкриває твій анонімний research-профіль.
+Не публікуй його, якщо не хочеш ділитися доступом до своїх runs.
+</p>
+
+</section>
+{% endif %}

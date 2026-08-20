@@ -127,10 +127,83 @@ def _snapshot():
         }
 
 
+def _augment_live_snapshot(data):
+    status_payload = data.get("status")
+    if not isinstance(status_payload, dict):
+        return data
+
+    runtime_snapshot = status_payload.get("runtime_status")
+    if not isinstance(runtime_snapshot, dict) or not runtime_snapshot:
+        return data
+
+    local_logs = status_payload.get("runtime_log_tail")
+    if not isinstance(local_logs, list):
+        local_logs = []
+    local_logs = [str(x).rstrip("\n") for x in local_logs[-100:]]
+
+    try:
+        observer = oc._summarize(
+            runtime_snapshot,
+            "termux:observer_status.json",
+        )
+        current = runtime_snapshot.get("current_state") or {}
+        states = (
+            (runtime_snapshot.get("recent") or {}).get("states")
+            or []
+        )
+        observer["opportunity"] = oc._entry_opportunity(
+            current,
+            states,
+            local_logs,
+        )
+        data["observer"] = observer
+        data["logs"] = local_logs
+    except Exception as exc:
+        data["summary_error"] = (
+            f"{type(exc).__name__}: {exc}"
+        )[:240]
+        return data
+
+    started_at = status_payload.get("started_at")
+    uptime_sec = None
+    if started_at:
+        try:
+            started = datetime.fromisoformat(
+                str(started_at).replace("Z", "+00:00")
+            )
+            uptime_sec = max(
+                0,
+                int(
+                    (datetime.now(timezone.utc) - started)
+                    .total_seconds()
+                ),
+            )
+        except Exception:
+            pass
+
+    data["process"] = {
+        "pid": status_payload.get("pid"),
+        "alive": bool(
+            data.get("online")
+            and status_payload.get("active")
+        ),
+        "started_at": started_at,
+        "uptime_sec": uptime_sec,
+        "runtime_dir": (
+            "termux:~/cognitive-command-center/"
+            "observer_runtime"
+        ),
+        "runtime_dir_exists": True,
+        "command": ["termux-agent", "observer_runtime"],
+        "engine_attached": True,
+    }
+    return data
+
+
 @bp.get("/status")
 def admin_status():
     oc._require_admin()
-    return jsonify(_snapshot())
+    return jsonify(_augment_live_snapshot(_snapshot()))
 
 
 @bp.post("/command")

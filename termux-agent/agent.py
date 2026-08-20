@@ -297,6 +297,76 @@ def current_status():
     return read_json(STATUS_FILE, {})
 
 
+def compact_runtime_snapshot(snapshot):
+    # Keep live UI traffic compact enough for mobile/network links.
+    if not isinstance(snapshot, dict):
+        return {}
+
+    current = snapshot.get("current_state")
+    if not isinstance(current, dict):
+        current = {}
+
+    derived = snapshot.get("derived")
+    if not isinstance(derived, dict):
+        derived = {}
+
+    keep_modules = {
+        "PFL1", "EFS1", "BPM1", "EH1", "GSR1", "CGE1",
+        "AAL1", "ERL1", "GDX1", "SCR1", "GAP1", "GRC1", "RES1",
+    }
+    compact_derived = {
+        name: value
+        for name, value in derived.items()
+        if name in keep_modules
+    }
+
+    recent = snapshot.get("recent")
+    if not isinstance(recent, dict):
+        recent = {}
+    states = recent.get("states")
+    if not isinstance(states, list):
+        states = []
+
+    metrics = snapshot.get("metrics")
+    if not isinstance(metrics, dict):
+        metrics = {}
+
+    return {
+        "export_version": snapshot.get("export_version"),
+        "trader_version": snapshot.get("trader_version"),
+        "generated_at": snapshot.get("generated_at"),
+        "symbol": snapshot.get("symbol"),
+        "interval": snapshot.get("interval"),
+        "current_state": current,
+        "derived": compact_derived,
+        "runtime_counts": snapshot.get("runtime_counts") or {},
+        "metrics": {
+            "model_residual_tracker": (
+                metrics.get("model_residual_tracker") or {}
+            ),
+        },
+        "recent": {
+            "states": states[-60:],
+        },
+    }
+
+
+def runtime_log_tail(limit=100):
+    try:
+        from collections import deque
+        with RUNTIME_LOG.open(
+            "r",
+            encoding="utf-8",
+            errors="replace",
+        ) as handle:
+            return [
+                line.rstrip("\n")
+                for line in deque(handle, maxlen=limit)
+            ]
+    except Exception:
+        return []
+
+
 def start_runtime(params):
     if process_alive():
         return "Observer Testnet runtime already running."
@@ -481,7 +551,8 @@ def status_payload():
         save_state()
 
     runtime_status = current_status()
-    current = runtime_status.get("current_state") or {}
+    live_snapshot = compact_runtime_snapshot(runtime_status)
+    current = live_snapshot.get("current_state") or {}
 
     try:
         acct = account()
@@ -530,7 +601,8 @@ def status_payload():
         "session_pnl_usdt": pnl,
         "fills": fill_count,
         "testnet_only": True,
-        "runtime_status": runtime_status,
+        "runtime_status": live_snapshot,
+        "runtime_log_tail": runtime_log_tail(100),
     }
 
 
@@ -686,7 +758,7 @@ def main():
                 report_heartbeat()
                 last_heartbeat = now
 
-            if now - last_status >= 6:
+            if now - last_status >= 3:
                 report_status()
                 last_status = now
 

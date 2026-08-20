@@ -642,7 +642,49 @@ async function startLiveCanary(){
     renderV27(data);
   }
 
-  async function refresh(){try{const r=await fetch("{{ url_for('observer_control.status_api') }}",{cache:"no-store"});if(!r.ok)throw new Error(`status ${r.status}`);render(await r.json());}catch(err){$("observer-message").textContent="Status refresh failed: "+err.message;$("observer-message").className="observer-message error";}}
+  async function refresh(){
+    try{
+      const baseReq=fetch(
+        "{{ url_for('observer_control.status_api') }}",
+        {cache:"no-store"}
+      );
+      const edgeReq=fetch(
+        "/observer/edge/status",
+        {cache:"no-store"}
+      ).catch(()=>null);
+
+      const baseResp=await baseReq;
+      if(!baseResp.ok){
+        throw new Error(`status ${baseResp.status}`);
+      }
+      const data=await baseResp.json();
+
+      const edgeResp=await edgeReq;
+      if(edgeResp && edgeResp.ok){
+        const edge=await edgeResp.json();
+        if(
+          edge.ok &&
+          edge.online &&
+          edge.observer &&
+          edge.status &&
+          edge.status.active
+        ){
+          data.process=edge.process||data.process;
+          data.observer=edge.observer;
+          if(Array.isArray(edge.logs) && edge.logs.length){
+            data.logs=edge.logs;
+          }
+          data.edge_live=true;
+        }
+      }
+
+      render(data);
+    }catch(err){
+      $("observer-message").textContent=
+        "Status refresh failed: "+err.message;
+      $("observer-message").className="observer-message error";
+    }
+  }
   async function action(name){if(busy)return;busy=true;$("observer-message").textContent=`${name.toUpperCase()}…`;$("observer-message").className="observer-message";try{const r=await fetch(`/observer/api/${name}`,{method:"POST",headers:{"X-CSRF-Token":csrf,"Accept":"application/json"}});const data=await r.json();$("observer-message").textContent=data.message||(data.ok?"OK":"Failed");$("observer-message").className="observer-message "+(data.ok?"ok":"error");render(data);}catch(err){$("observer-message").textContent=err.message;$("observer-message").className="observer-message error";}finally{busy=false;await refresh();}}
   $("btn-start").addEventListener("click",()=>action("start")); $("btn-stop").addEventListener("click",()=>action("stop")); $("btn-restart").addEventListener("click",()=>action("restart"));
   $("btn-live-canary").addEventListener("click",startLiveCanary);

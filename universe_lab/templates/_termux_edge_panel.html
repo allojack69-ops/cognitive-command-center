@@ -180,6 +180,22 @@
   const csrf=root.dataset.csrf;
   const $=id=>document.getElementById(id);
 
+  function pruneLegacyExecutionUI(){
+    const candidates=[...document.querySelectorAll("section.card, details.card, section, details")];
+    for(const el of candidates){
+      if(el.id==="edge-node-card") continue;
+      const text=(el.textContent||"").toUpperCase();
+      if(text.includes("FRANKFURT EXECUTION RELAY")) el.remove();
+    }
+    const canary=document.querySelector(".observer-canary-card");
+    if(canary) canary.hidden=true;
+    const actions=document.querySelector(".observer-actions");
+    if(actions) actions.querySelectorAll("button").forEach(btn=>btn.hidden=true);
+  }
+  pruneLegacyExecutionUI();
+  const legacyObserver=new MutationObserver(pruneLegacyExecutionUI);
+  legacyObserver.observe(root,{childList:true,subtree:true});
+
   const post=async(url,body)=>{
     const r=await fetch(url,{
       method:'POST',
@@ -449,6 +465,10 @@
   async function refresh(){
     try{
       const r=await fetch('/observer/edge/status',{cache:'no-store'});
+      if(r.status===401 || r.status===403){
+        window.location.assign("/admin/login?next=/observer/control");
+        return;
+      }
       const j=await r.json();
       if(!r.ok||!j.ok)throw new Error(j.error||('HTTP '+r.status));
 

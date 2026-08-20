@@ -1,5 +1,11 @@
 import base64
 import gzip
+import hashlib
+import hmac
+import math
+import urllib.parse
+import urllib.request
+import urllib.error
 import json
 import os
 import re
@@ -13,7 +19,7 @@ import atexit
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Blueprint, abort, jsonify, render_template, request, session
+from flask import Blueprint, abort, jsonify, render_template, request, session, redirect, url_for
 from sqlalchemy import select, func
 
 from db import SessionLocal
@@ -38,10 +44,257 @@ MAX_RUNTIME_CHECKPOINTS = max(6, min(96, int(os.getenv("OBSERVER_MAX_RUNTIME_CHE
 CANARY_MAX_ORDER_HARD_CAP = max(1.0, float(os.getenv("OBSERVER_CANARY_HARD_MAX_ORDER_USDT", "25")))
 CANARY_MAX_TRADES_HARD_CAP = max(1, int(os.getenv("OBSERVER_CANARY_HARD_MAX_TRADES", "10")))
 CANARY_MAX_MINUTES_HARD_CAP = max(10, int(os.getenv("OBSERVER_CANARY_HARD_MAX_MINUTES", "180")))
+LIVE_CANARY_ENABLED = os.getenv("OBSERVER_LIVE_CANARY_ENABLED", "0") == "1"
 _checkpoint_thread = None
 _checkpoint_stop = threading.Event()
 _checkpoint_lock = threading.Lock()
 _checkpoint_last_key = None
+
+
+TESTNET_BASE_URL = "https://testnet.binance.vision"
+TESTNET_MAX_ORDER_HARD_CAP = max(1.0, float(os.getenv("OBSERVER_TESTNET_HARD_MAX_ORDER_USDT", "100")))
+TESTNET_MAX_TRADES_HARD_CAP = max(1, int(os.getenv("OBSERVER_TESTNET_HARD_MAX_TRADES", "100")))
+TESTNET_MAX_MINUTES_HARD_CAP = max(10, int(os.getenv("OBSERVER_TESTNET_HARD_MAX_MINUTES", "360")))
+_testnet_cache = {"at": 0.0, "value": None}
+_testnet_cache_lock = threading.Lock()
+
+
+def _testnet_credentials():
+    return (
+        os.getenv("BINANCE_TESTNET_API_KEY", "").strip(),
+        os.getenv("BINANCE_TESTNET_API_SECRET", "").strip(),
+    )
+
+
+def _testnet_credentials_ready():
+    key, secret = _testnet_credentials()
+    return bool(key and secret)
+
+
+def _testnet_http_json(method, path, params=None, signed=False):
+    params = dict(params or {})
+    key, secret = _testnet_credentials()
+    if signed and not (key and secret):
+        raise RuntimeError("BINANCE_TESTNET_API_KEY / BINANCE_TESTNET_API_SECRET missing")
+
+    if signed:
+        server_req = urllib.request.Request(
+            TESTNET_BASE_URL + "/api/v3/time",
+            headers={"User-Agent": "UniverseLab-Observer/2.9"},
+        )
+        with urllib.request.urlopen(server_req, timeout=10) as r:
+            server_time = int(json.loads(r.read().decode("utf-8"))["serverTime"])
+        params["timestamp"] = server_time
+        params["recvWindow"] = 5000
+
+    query = urllib.parse.urlencode(params)
+    if signed:
+        sig = hmac.new(
+            secret.encode("utf-8"),
+            query.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+        query = f"{query}&signature={sig}" if query else f"signature={sig}"
+
+    url = TESTNET_BASE_URL + path
+    body = None
+    if method.upper() == "GET":
+        if query:
+            url += "?" + query
+    else:
+        body = query.encode("utf-8")
+
+    headers = {"User-Agent": "UniverseLab-Observer/2.9"}
+    if signed:
+        headers["X-MBX-APIKEY"] = key
+    if body is not None:
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+
+    req = urllib.request.Request(url, data=body, method=method.upper(), headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            raw = r.read().decode("utf-8")
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:500]
+        raise RuntimeError(f"HTTP {exc.code}: {detail}") from exc
+
+
+def _testnet_symbol_rules():
+    info = _testnet_http_json(
+        "GET",
+        "/api/v3/exchangeInfo",
+        {"symbol": "BTCUSDT"},
+        signed=False,
+    )
+    symbols = info.get("symbols") or []
+    if not symbols:
+        raise RuntimeError("BTCUSDT exchangeInfo missing")
+    filters = {f.get("filterType"): f for f in symbols[0].get("filters", [])}
+    lot = filters.get("LOT_SIZE") or {}
+    notional = filters.get("NOTIONAL") or filters.get("MIN_NOTIONAL") or {}
+    return {
+        "step_size": float(lot.get("stepSize", "0.00000001")),
+        "min_qty": float(lot.get("minQty", "0")),
+        "min_notional": float(notional.get("minNotional", "0")),
+    }
+
+
+def _floor_step(value, step):
+    if step <= 0:
+        return value
+    return math.floor((value + 1e-15) / step) * step
+
+
+def _testnet_account_snapshot(force=False):
+    now = time.time()
+    with _testnet_cache_lock:
+        if (
+            not force
+            and _testnet_cache["value"] is not None
+            and now - float(_testnet_cache["at"]) < 8.0
+        ):
+            return dict(_testnet_cache["value"])
+
+    if not _testnet_credentials_ready():
+        return {
+            "credentials_ready": False,
+            "ok": False,
+            "reason": "MISSING_TESTNET_CREDENTIALS",
+        }
+
+    try:
+        account = _testnet_http_json("GET", "/api/v3/account", signed=True)
+        ticker = _testnet_http_json(
+            "GET",
+            "/api/v3/ticker/price",
+            {"symbol": "BTCUSDT"},
+            signed=False,
+        )
+        price = float(ticker.get("price", 0) or 0)
+        balances = {
+            x.get("asset"): float(x.get("free", 0) or 0)
+            for x in account.get("balances", [])
+            if x.get("asset") in ("BTC", "USDT")
+        }
+        value = {
+            "credentials_ready": True,
+            "ok": True,
+            "usdt": balances.get("USDT", 0.0),
+            "btc": balances.get("BTC", 0.0),
+            "price": price,
+            "equity_usdt": balances.get("USDT", 0.0) + balances.get("BTC", 0.0) * price,
+        }
+    except Exception as exc:
+        value = {
+            "credentials_ready": True,
+            "ok": False,
+            "reason": str(exc)[:300],
+        }
+
+    with _testnet_cache_lock:
+        _testnet_cache["at"] = now
+        _testnet_cache["value"] = dict(value)
+    return value
+
+
+def _filled_testnet_count():
+    path = _runtime_dir() / "storage" / "exchange_trades_erl1.jsonl"
+    return sum(
+        1
+        for row in _jsonl_rows(path)
+        if row.get("status") == "FILLED_TESTNET"
+    )
+
+
+def _testnet_status():
+    meta = _read_meta()
+    cfg = meta.get("canary") or {}
+    profile = meta.get("profile") or "PAPER"
+    snap = _testnet_account_snapshot()
+    baseline = cfg.get("testnet_baseline") or {}
+    base_btc = float(baseline.get("btc", 0) or 0)
+    base_equity = baseline.get("equity_usdt")
+    btc = float(snap.get("btc", 0) or 0) if snap.get("ok") else None
+    price = float(snap.get("price", 0) or 0) if snap.get("ok") else None
+    bot_btc = max(0.0, btc - base_btc) if btc is not None else None
+    bot_value = bot_btc * price if bot_btc is not None and price is not None else None
+    pnl = (
+        float(snap.get("equity_usdt")) - float(base_equity)
+        if snap.get("ok") and base_equity is not None
+        else None
+    )
+    baseline_fills = int(cfg.get("baseline_testnet_fills", 0) or 0)
+    return {
+        **snap,
+        "profile": profile,
+        "active": profile == "TESTNET_LIVE" and _process_info().get("alive", False),
+        "max_order_usdt": cfg.get("max_order_usdt"),
+        "max_trades": cfg.get("max_trades"),
+        "max_minutes": cfg.get("max_minutes"),
+        "fills": max(0, _filled_testnet_count() - baseline_fills) if cfg else 0,
+        "baseline_btc": base_btc if cfg else None,
+        "bot_position_btc": bot_btc,
+        "bot_position_value_usdt": bot_value,
+        "session_pnl_usdt": pnl,
+        "position_open": bool(bot_value is not None and bot_value >= 5.0),
+    }
+
+
+def _testnet_flatten(reason="MANUAL"):
+    # Close only BTC accumulated above the Testnet session baseline.
+    if not _testnet_credentials_ready():
+        return False, "Testnet credentials missing."
+
+    meta = _read_meta()
+    cfg = meta.get("canary") or {}
+    baseline = cfg.get("testnet_baseline") or {}
+    base_btc = float(baseline.get("btc", 0) or 0)
+
+    try:
+        snap = _testnet_account_snapshot(force=True)
+        if not snap.get("ok"):
+            return False, f"Testnet account read failed: {snap.get('reason','unknown')}"
+        current_btc = float(snap.get("btc", 0) or 0)
+        price = float(snap.get("price", 0) or 0)
+        bot_qty = max(0.0, current_btc - base_btc)
+        rules = _testnet_symbol_rules()
+        qty = _floor_step(bot_qty, float(rules["step_size"]))
+        if qty <= 0 or qty * price < float(rules["min_notional"]):
+            return True, "No bot-opened testnet BTC position to close."
+
+        qty_text = (f"{qty:.8f}").rstrip("0").rstrip(".")
+        params = {
+            "symbol": "BTCUSDT",
+            "side": "SELL",
+            "type": "MARKET",
+            "quantity": qty_text,
+            "newOrderRespType": "FULL",
+        }
+        _testnet_http_json("POST", "/api/v3/order/test", params, signed=True)
+        result = _testnet_http_json("POST", "/api/v3/order", params, signed=True)
+
+        event = {
+            "time": datetime.now(timezone.utc).isoformat(),
+            "state_id": "CONTROL",
+            "strategy": "TESTNET_POSITION_MANAGER",
+            "action": "SELL",
+            "status": "FILLED_TESTNET",
+            "mode": "TESTNET",
+            "reason": reason,
+            "order_id": result.get("orderId"),
+            "executed_qty": result.get("executedQty"),
+            "cummulative_quote_qty": result.get("cummulativeQuoteQty"),
+            "exchange_status": result.get("status"),
+        }
+        path = _runtime_dir() / "storage" / "exchange_trades_erl1.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+        _testnet_account_snapshot(force=True)
+        return True, f"Testnet position closed: {qty_text} BTC."
+    except Exception as exc:
+        return False, f"Testnet flatten failed: {type(exc).__name__}: {exc}"
 
 
 def _gzip_text(text):
@@ -229,7 +482,8 @@ def _watchdog_worker():
             break
         _persist_checkpoint()
         meta = _read_meta()
-        if meta.get("profile") != "LIVE_CANARY":
+        profile = meta.get("profile")
+        if profile not in ("LIVE_CANARY", "TESTNET_LIVE"):
             continue
         canary = meta.get("canary") or {}
         started_at = meta.get("started_at")
@@ -239,16 +493,28 @@ def _watchdog_worker():
         except Exception:
             elapsed_min = 0.0
 
-        baseline = int(canary.get("baseline_live_fills", 0) or 0)
-        fills = max(0, _filled_live_count() - baseline)
+        if profile == "TESTNET_LIVE":
+            baseline = int(canary.get("baseline_testnet_fills", 0) or 0)
+            fills = max(0, _filled_testnet_count() - baseline)
+        else:
+            baseline = int(canary.get("baseline_live_fills", 0) or 0)
+            fills = max(0, _filled_live_count() - baseline)
         max_trades = int(canary.get("max_trades", 0) or 0)
         max_minutes = int(canary.get("max_minutes", 0) or 0)
 
         if max_trades and fills >= max_trades:
-            _stop_process(reason=f"LIVE CANARY auto-stop: {fills}/{max_trades} fills reached.")
+            if profile == "TESTNET_LIVE":
+                _testnet_flatten(reason="AUTO_MAX_FILLS")
+                _stop_process(reason=f"TESTNET auto-stop: {fills}/{max_trades} fills reached.")
+            else:
+                _stop_process(reason=f"LIVE CANARY auto-stop: {fills}/{max_trades} fills reached.")
             break
         if max_minutes and elapsed_min >= max_minutes:
-            _stop_process(reason=f"LIVE CANARY auto-stop: {max_minutes} minute limit reached.")
+            if profile == "TESTNET_LIVE":
+                _testnet_flatten(reason="AUTO_TIME_LIMIT")
+                _stop_process(reason=f"TESTNET auto-stop: {max_minutes} minute limit reached.")
+            else:
+                _stop_process(reason=f"LIVE CANARY auto-stop: {max_minutes} minute limit reached.")
             break
 
 
@@ -537,6 +803,16 @@ def _safe_observer_env(profile="PAPER", canary=None):
         env["MOR_MAX_ORDER_USDT"] = str(canary["max_order_usdt"])
         env["MOR_ORDER_COOLDOWN_SECONDS"] = str(max(300, int(canary.get("cooldown_seconds", 300))))
         # API credentials are inherited from Render secrets only.
+    elif profile == "TESTNET_LIVE":
+        env["MOR_EXECUTION_MODE"] = "TESTNET"
+        env["MOR_LIVE_ARM"] = ""
+        env["BINANCE_API_KEY"] = os.getenv("BINANCE_TESTNET_API_KEY", "").strip()
+        env["BINANCE_API_SECRET"] = os.getenv("BINANCE_TESTNET_API_SECRET", "").strip()
+        env["MOR_MAX_ORDER_USDT"] = str(canary["max_order_usdt"])
+        env["MOR_ORDER_COOLDOWN_SECONDS"] = str(max(60, int(canary.get("cooldown_seconds", 60))))
+        env["MOR_TESTNET_BASELINE_BTC"] = str((canary.get("testnet_baseline") or {}).get("btc", 0) or 0)
+        env["MOR_MARKET_REST_URL"] = "https://testnet.binance.vision/api/v3/klines"
+        env["MOR_MARKET_WS_URL"] = "wss://stream.testnet.binance.vision/ws/btcusdt@kline_1m"
     elif profile == "TESTNET":
         env["MOR_EXECUTION_MODE"] = "TESTNET"
         env["MOR_LIVE_ARM"] = ""
@@ -572,6 +848,9 @@ def _start_process(profile="PAPER", canary=None):
             and os.getenv("BINANCE_API_SECRET", "").strip()
         ):
             return False, "LIVE CANARY blocked: Binance API credentials are missing in Render environment variables."
+
+    if profile == "TESTNET_LIVE" and not _testnet_credentials_ready():
+        return False, "TESTNET blocked: add BINANCE_TESTNET_API_KEY and BINANCE_TESTNET_API_SECRET."
 
     restored = _restore_latest_checkpoint()
 
@@ -907,13 +1186,15 @@ def _status_payload():
         "logs": _tail_log(),
         "backup": _backup_status(),
         "canary": _canary_status(),
+        "testnet": _testnet_status(),
         "server_time": datetime.now(timezone.utc).isoformat(),
     }
 
 
 @bp.get("/control")
 def control():
-    _require_admin()
+    if not session.get("admin"):
+        return redirect(url_for("admin_login", next="/observer/control"))
     return render_template(
         "observer_control.html",
         csrf_token=_csrf_token(),
@@ -938,10 +1219,90 @@ def start_api():
     return jsonify(payload), (200 if ok else 409)
 
 
+@bp.post("/api/start-testnet")
+def start_testnet_api():
+    _require_admin()
+    _check_csrf()
+    data = request.get_json(silent=True) or {}
+
+    if str(data.get("confirm", "")).strip().upper() != "TESTNET":
+        return jsonify({"ok": False, "message": "Type TESTNET to start fake-money exchange execution."}), 400
+
+    try:
+        max_order = float(data.get("max_order_usdt"))
+        max_trades = int(data.get("max_trades"))
+        max_minutes = int(data.get("max_minutes"))
+    except Exception:
+        return jsonify({"ok": False, "message": "Fill max order, max trades and duration."}), 400
+
+    if not (1.0 <= max_order <= TESTNET_MAX_ORDER_HARD_CAP):
+        return jsonify({"ok": False, "message": f"Max test order must be 1..{TESTNET_MAX_ORDER_HARD_CAP:.0f} USDT."}), 400
+    if not (1 <= max_trades <= TESTNET_MAX_TRADES_HARD_CAP):
+        return jsonify({"ok": False, "message": f"Max test fills must be 1..{TESTNET_MAX_TRADES_HARD_CAP}."}), 400
+    if not (5 <= max_minutes <= TESTNET_MAX_MINUTES_HARD_CAP):
+        return jsonify({"ok": False, "message": f"Duration must be 5..{TESTNET_MAX_MINUTES_HARD_CAP} minutes."}), 400
+    if not _testnet_credentials_ready():
+        return jsonify({"ok": False, "message": "Add BINANCE_TESTNET_API_KEY and BINANCE_TESTNET_API_SECRET to Render first."}), 409
+
+    if _process_info().get("alive"):
+        ok_stop, msg_stop = _stop_process()
+        if not ok_stop:
+            return jsonify({"ok": False, "message": msg_stop}), 500
+        time.sleep(0.5)
+
+    baseline = _testnet_account_snapshot(force=True)
+    if not baseline.get("ok"):
+        return jsonify({"ok": False, "message": f"Testnet account preflight failed: {baseline.get('reason','unknown')}"}), 409
+
+    cfg = {
+        "max_order_usdt": max_order,
+        "max_trades": max_trades,
+        "max_minutes": max_minutes,
+        "cooldown_seconds": 60,
+        "baseline_testnet_fills": _filled_testnet_count(),
+        "testnet_baseline": {
+            "usdt": baseline.get("usdt"),
+            "btc": baseline.get("btc"),
+            "equity_usdt": baseline.get("equity_usdt"),
+            "price": baseline.get("price"),
+        },
+    }
+    ok, message = _start_process(profile="TESTNET_LIVE", canary=cfg)
+    payload = _status_payload()
+    payload["ok"] = ok
+    payload["message"] = message
+    return jsonify(payload), (200 if ok else 409)
+
+
+@bp.post("/api/close-testnet-position")
+def close_testnet_position_api():
+    _require_admin()
+    _check_csrf()
+    ok, message = _testnet_flatten(reason="MANUAL_CLOSE")
+    payload = _status_payload()
+    payload["ok"] = ok
+    payload["message"] = message
+    return jsonify(payload), (200 if ok else 409)
+
+
+@bp.post("/api/stop-testnet")
+def stop_testnet_api():
+    _require_admin()
+    _check_csrf()
+    close_ok, close_message = _testnet_flatten(reason="STOP_FLATTEN")
+    ok, message = _stop_process(reason="Testnet Observer stopped.")
+    payload = _status_payload()
+    payload["ok"] = bool(ok and close_ok)
+    payload["message"] = f"{close_message} {message}"
+    return jsonify(payload), (200 if ok and close_ok else 409)
+
+
 @bp.post("/api/start-live-canary")
 def start_live_canary_api():
     _require_admin()
     _check_csrf()
+    if not LIVE_CANARY_ENABLED:
+        return jsonify({"ok": False, "message": "Real-money execution is disabled. Use Termux Binance Spot Testnet."}), 403
     data = request.get_json(silent=True) or {}
 
     if data.get("confirm") != "LIVE":

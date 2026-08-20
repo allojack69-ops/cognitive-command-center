@@ -2,6 +2,12 @@
 {% block title %}Observer Control Center{% endblock %}
 {% block content %}
 <section class="observer-console" id="observer-console" data-csrf="{{ csrf_token }}">
+  <style id="observer-cleanup-v17">
+    .observer-actions button{display:none!important}
+    .observer-canary-card{display:none!important}
+    .observer-v27-strip>div:nth-child(2){display:none!important}
+  </style>
+
   <div class="observer-console-head">
     <div>
       <div class="eyebrow">PRIVATE · OBSERVER CONTROL</div>
@@ -542,6 +548,10 @@ async function startLiveCanary(){
       ).catch(()=>null);
 
       const baseResp=await baseReq;
+      if(baseResp.status===401 || baseResp.status===403){
+        window.location.assign("/admin/login?next=/observer/control");
+        return;
+      }
       if(!baseResp.ok){
         throw new Error(`status ${baseResp.status}`);
       }

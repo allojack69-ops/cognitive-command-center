@@ -1,9 +1,9 @@
 
 import os, json, secrets, csv, io
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from functools import wraps
 from pathlib import Path
-from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, abort
+from flask import Flask, render_template, request, redirect, url_for, session, flash, Response, abort, jsonify
 from sqlalchemy import select, func
 from werkzeug.middleware.proxy_fix import ProxyFix
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
@@ -24,7 +24,8 @@ app.wsgi_app=ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.getenv("COOKIE_SECURE","1")=="1" and os.getenv("DATABASE_URL") is not None
+    SESSION_COOKIE_SECURE=os.getenv("COOKIE_SECURE","1")=="1" and os.getenv("DATABASE_URL") is not None,
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
 )
 ADMIN_KEY=os.getenv("ADMIN_KEY","")
 
@@ -833,7 +834,7 @@ def hai_new():
 @app.route("/human-ai/<run_id>/human",methods=["GET","POST"])
 def hai_human(run_id):
     with SessionLocal() as db:
-        run=db.get(Run,run_id); 
+        run=db.get(Run,run_id);
         if not run: abort(404)
         p=current_participant(db)
         if run.participant_id!=p.id and not session.get("admin"): abort(403)
@@ -986,7 +987,7 @@ def benchmark_prompt(pack, order=None):
 @app.route("/benchmark/run/<run_id>",methods=["GET","POST"])
 def benchmark_run(run_id):
     with SessionLocal() as db:
-        run=db.get(Run,run_id); 
+        run=db.get(Run,run_id);
         if not run: abort(404)
         p=current_participant(db)
         if run.participant_id!=p.id and not session.get("admin"): abort(403)
@@ -1024,7 +1025,7 @@ def benchmark_run(run_id):
 @app.get("/benchmark/result/<run_id>")
 def benchmark_result(run_id):
     with SessionLocal() as db:
-        run=db.get(Run,run_id); 
+        run=db.get(Run,run_id);
         if not run: abort(404)
         p=current_participant(db)
         if run.participant_id!=p.id and not session.get("admin"): abort(403)
@@ -1039,17 +1040,29 @@ def benchmark_result(run_id):
         m=m
     )
 
+def _safe_admin_next():
+    target=(request.args.get("next") or "").strip()
+    if not target.startswith("/") or target.startswith("//"):
+        return url_for("admin")
+    return target
+
+
 @app.route("/admin/login",methods=["GET","POST"])
 def admin_login():
     if request.method=="POST":
         if ADMIN_KEY and secrets.compare_digest(request.form.get("key",""),ADMIN_KEY):
-            session["admin"]=True; return redirect(request.args.get("next") or url_for("admin"))
+            session["admin"]=True
+            session.permanent=True
+            session.modified=True
+            return redirect(_safe_admin_next())
         flash("Невірний ADMIN_KEY або він не налаштований.","error")
     return render_template("admin_login.html")
 
 @app.get("/admin/logout")
 def admin_logout():
-    session.pop("admin",None); return redirect(url_for("index"))
+    session.pop("admin",None)
+    session.pop("observer_csrf",None)
+    return redirect(url_for("index"))
 
 @app.get("/admin")
 @admin_required
@@ -1164,7 +1177,17 @@ def export_answers():
 @app.errorhandler(404)
 def not_found(e): return render_template("message.html",title="404",message="Сторінку не знайдено."),404
 @app.errorhandler(403)
-def forbidden(e): return render_template("message.html",title="403",message="Цей run належить іншій сесії."),403
+def forbidden(e):
+    path=request.path or ""
+    if path.startswith("/observer"):
+        if not session.get("admin"):
+            login_url=url_for("admin_login", next="/observer/control")
+            api_path=(path.startswith("/observer/api/") or path.startswith("/observer/edge/") or path.startswith("/observer/testnet/api/"))
+            if api_path:
+                return jsonify({"ok":False,"error":"admin_session_required","login_url":login_url}),401
+            return redirect(login_url)
+        return render_template("message.html",title="403",message="Observer: доступ заборонено для цієї дії."),403
+    return render_template("message.html",title="403",message="Доступ заборонено або ресурс належить іншій сесії."),403
 
 if __name__=="__main__":
     app.run(host="0.0.0.0",port=int(os.getenv("PORT","5000")),debug=True)

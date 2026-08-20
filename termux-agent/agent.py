@@ -604,6 +604,13 @@ def status_payload():
     if fill_count == 0 and abs(signed_btc_delta) < 1e-12:
         pnl = 0.0
 
+    all_fills = fills()
+    baseline_fill_index = int(
+        STATE.get("baseline_fill_count", 0) or 0
+    )
+    session_trades = all_fills[baseline_fill_index:]
+    fill_count = len(session_trades)
+
     return {
         "active": process_alive(),
         "pid": STATE.get("pid"),
@@ -622,6 +629,7 @@ def status_payload():
         ),
         "session_pnl_usdt": pnl,
         "fills": fill_count,
+        "session_trades": session_trades[-12:],
         "accounting": {
             "baseline_usdt": baseline_usdt,
             "baseline_btc": baseline_btc,

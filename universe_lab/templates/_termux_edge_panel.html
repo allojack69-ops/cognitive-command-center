@@ -1,0 +1,334 @@
+<section class="card edge-node-card" id="edge-node-card">
+  <style>
+    .edge-node-card{margin:28px 0;border-color:rgba(100,220,255,.32);background:rgba(3,18,29,.82)}
+    .edge-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+    .edge-head h2{margin:.15rem 0}
+    .edge-badge{border:1px solid #486070;border-radius:999px;padding:8px 13px;font-weight:800;font-size:.82rem;white-space:nowrap}
+    .edge-badge.online{color:#7ef0bd;border-color:#2f8d68}
+    .edge-badge.offline{color:#ffcf7b;border-color:#846331}
+    .edge-statusline{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+    .edge-chip{border:1px solid rgba(130,180,215,.22);border-radius:999px;padding:7px 11px;font-size:.76rem;color:#9fb1c4}
+    .edge-chip.good{color:#7ef0bd;border-color:rgba(80,210,150,.35)}
+    .edge-chip.warn{color:#ffcf7b;border-color:rgba(255,190,90,.35)}
+    .edge-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+    .edge-grid>div{border:1px solid rgba(130,180,215,.22);border-radius:16px;padding:14px;min-width:0}
+    .edge-grid span{display:block;font-size:.70rem;letter-spacing:.08em;color:#91a5ba;text-transform:uppercase}
+    .edge-grid b{display:block;margin-top:6px;font-size:1.08rem;overflow-wrap:anywhere}
+    .edge-grid .wide{grid-column:1/-1}
+    .edge-activity{border:1px solid rgba(126,240,189,.20);border-radius:18px;padding:15px;margin:8px 0 18px;background:rgba(4,27,31,.34)}
+    .edge-activity-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .edge-activity-head strong{font-size:1.05rem}
+    .edge-activity small{display:block;margin-top:7px;color:#94a8bb;line-height:1.45}
+    .edge-dot{width:10px;height:10px;border-radius:50%;background:#667789;display:inline-block;margin-right:7px}
+    .edge-dot.live{background:#65e6ae;box-shadow:0 0 12px rgba(101,230,174,.65)}
+    .edge-dot.wait{background:#ffd27b;box-shadow:0 0 12px rgba(255,210,123,.5)}
+    .edge-trades{margin:18px 0;border-top:1px solid rgba(130,180,215,.16);padding-top:16px}
+    .edge-trades-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+    .edge-trades-head h3{margin:0;font-size:1rem}
+    .edge-trade-list{display:grid;gap:8px}
+    .edge-trade{display:grid;grid-template-columns:74px 64px 1fr auto;gap:10px;align-items:center;border:1px solid rgba(130,180,215,.18);border-radius:13px;padding:10px 11px;font-size:.78rem}
+    .edge-trade .buy{color:#7ef0bd;font-weight:800}
+    .edge-trade .sell{color:#ff8b99;font-weight:800}
+    .edge-trade .muted2{color:#8da0b3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .edge-empty{border:1px dashed rgba(130,180,215,.24);border-radius:13px;padding:14px;color:#94a8bb;font-size:.82rem;line-height:1.45}
+    .edge-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .edge-controls button{min-height:52px;border-radius:14px;font-weight:800;transition:opacity .15s ease,filter .15s ease}
+    .edge-controls button:disabled{opacity:.34;filter:saturate(.35);cursor:not-allowed}
+    .edge-start{background:#0c6048;color:white}
+    .edge-close{background:#12324a;color:white}
+    .edge-stop{background:#6a2028;color:white}
+    .edge-note{font-size:.82rem;color:#94a8bb;margin-top:12px;word-break:break-word}
+    @media(max-width:640px){
+      .edge-controls{grid-template-columns:1fr}
+      .edge-grid{grid-template-columns:1fr 1fr}
+      .edge-trade{grid-template-columns:64px 56px 1fr}
+      .edge-trade .edge-trade-quote{grid-column:3}
+    }
+  </style>
+
+  <div class="edge-head">
+    <div>
+      <div class="eyebrow">ACTIVE TESTNET PATH · PHONE EXECUTION NODE</div>
+      <h2>Termux Observer Agent</h2>
+      <p class="muted">Live Binance Spot Testnet execution. Virtual funds only.</p>
+    </div>
+    <span class="edge-badge offline" id="edge-badge">OFFLINE</span>
+  </div>
+
+  <div class="edge-statusline">
+    <span class="edge-chip" id="edge-engine-chip">ENGINE · CHECKING</span>
+    <span class="edge-chip" id="edge-exec-chip">EXECUTION · CHECKING</span>
+    <span class="edge-chip" id="edge-session-chip">SESSION · —</span>
+  </div>
+
+  <div class="edge-activity">
+    <div class="edge-activity-head">
+      <strong><span class="edge-dot" id="edge-activity-dot"></span><span id="edge-activity-title">Checking bot activity…</span></strong>
+      <span class="edge-chip" id="edge-fill-progress">0 / 20 fills</span>
+    </div>
+    <small id="edge-activity-detail">Waiting for live status.</small>
+  </div>
+
+  <div class="edge-grid">
+    <div><span>MODE</span><b id="edge-mode">OFF</b></div>
+    <div><span>STATE</span><b id="edge-state">—</b></div>
+
+    <div><span>USDT CASH</span><b id="edge-usdt">—</b></div>
+    <div><span>BTC TOTAL</span><b id="edge-btc-total">—</b></div>
+
+    <div><span>BTC VALUE</span><b id="edge-btc-value">—</b></div>
+    <div><span>TOTAL EQUITY</span><b id="edge-equity">—</b></div>
+
+    <div><span>BOT POSITION</span><b id="edge-position">—</b></div>
+    <div><span>SESSION P/L</span><b id="edge-pnl">—</b></div>
+
+    <div><span>MARKET PRICE</span><b id="edge-price">—</b></div>
+    <div><span>MODEL ACTION</span><b id="edge-action">—</b></div>
+  </div>
+
+  <div class="edge-trades">
+    <div class="edge-trades-head">
+      <h3>Session trades</h3>
+      <span class="edge-chip" id="edge-fills">0 fills</span>
+    </div>
+    <div class="edge-trade-list" id="edge-trade-list">
+      <div class="edge-empty">No Testnet fills yet.</div>
+    </div>
+  </div>
+
+  <div class="edge-controls">
+    <button class="edge-start" id="edge-start" type="button">▶ START · 120 MIN</button>
+    <button class="edge-close" id="edge-close" type="button">CLOSE TEST POSITION</button>
+    <button class="edge-stop" id="edge-stop" type="button">■ STOP &amp; FLATTEN</button>
+  </div>
+  <div class="edge-note" id="edge-note">Waiting for phone heartbeat.</div>
+</section>
+
+<script>
+(() => {
+  const root=document.getElementById('observer-console');
+  if(!root)return;
+  const csrf=root.dataset.csrf;
+  const $=id=>document.getElementById(id);
+
+  const post=async(url,body)=>{
+    const r=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},
+      body:JSON.stringify(body||{})
+    });
+    let j={};
+    try{j=await r.json();}catch(_){}
+    if(!r.ok||!j.ok)throw new Error(j.error||j.message||('HTTP '+r.status));
+    return j;
+  };
+
+  const num=n=>{
+    n=Number(n);
+    return Number.isFinite(n)?n:null;
+  };
+  const fmt=(n,d=4)=>{
+    n=num(n);
+    return n===null?'—':n.toLocaleString(undefined,{maximumFractionDigits:d});
+  };
+  const money=n=>{
+    n=num(n);
+    return n===null?'—':fmt(n,2)+' USDT';
+  };
+  const btc=n=>{
+    n=num(n);
+    return n===null?'—':fmt(n,8)+' BTC';
+  };
+  const hhmm=t=>{
+    if(!t)return '—';
+    const d=new Date(t);
+    return Number.isNaN(d.getTime())?'—':d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  };
+  const sessionMinutes=s=>{
+    if(!s.started_at)return 0;
+    const t=new Date(s.started_at).getTime();
+    if(!Number.isFinite(t))return 0;
+    return Math.max(0,Math.floor((Date.now()-t)/60000));
+  };
+  const esc=x=>String(x??'').replace(/[&<>"']/g,m=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[m]);
+
+  function renderTrades(rows,active){
+    const box=$('edge-trade-list');
+    rows=Array.isArray(rows)?rows:[];
+    if(!rows.length){
+      box.innerHTML='<div class="edge-empty">'+(
+        active
+          ? 'No Testnet fills yet. The engine is running and scanning, but no order has passed the execution gates.'
+          : 'No fills in this session.'
+      )+'</div>';
+      return;
+    }
+    box.innerHTML=rows.slice().reverse().map(t=>{
+      const side=String(t.action||t.side||'—').toUpperCase();
+      const sideClass=side==='BUY'?'buy':side==='SELL'?'sell':'';
+      const qty=t.executed_qty??t.qty??t.quantity??'—';
+      const quote=t.cummulative_quote_qty??t.quote_qty??t.quote??null;
+      const state=t.state_id||'—';
+      const strategy=t.strategy||t.reason||'—';
+      return '<div class="edge-trade">'
+        +'<span>'+esc(hhmm(t.time))+'</span>'
+        +'<span class="'+sideClass+'">'+esc(side)+'</span>'
+        +'<span class="muted2">'+esc(state)+' · '+esc(strategy)+'</span>'
+        +'<span class="edge-trade-quote">'+esc(qty==='—'?'—':fmt(qty,8)+' BTC')
+        +(quote!=null?' · '+esc(fmt(quote,2))+' USDT':'')+'</span>'
+        +'</div>';
+    }).join('');
+  }
+
+  function setControls(j,s){
+    const pending=Array.isArray(j.pending_commands)?j.pending_commands:[];
+    const startQueued=pending.some(x=>x.command==='start');
+    const stopQueued=pending.some(x=>x.command==='stop');
+    const active=!!s.active;
+    const online=!!j.online;
+    const botPos=Math.max(0,num(s.bot_position_btc)||0);
+
+    const start=$('edge-start');
+    start.disabled=!online||active||startQueued;
+    start.textContent=active?'● RUNNING':startQueued?'START QUEUED…':'▶ START · 120 MIN';
+
+    const close=$('edge-close');
+    close.disabled=!online||botPos<=0;
+    close.textContent=botPos>0?'CLOSE TEST POSITION':'NO OPEN BOT POSITION';
+
+    const stop=$('edge-stop');
+    stop.disabled=!online||!active||stopQueued;
+    stop.textContent=stopQueued?'STOP QUEUED…':'■ STOP & FLATTEN';
+  }
+
+  async function refresh(){
+    try{
+      const r=await fetch('/observer/edge/status',{cache:'no-store'});
+      const j=await r.json();
+      if(!r.ok||!j.ok)throw new Error(j.error||('HTTP '+r.status));
+
+      const s=j.status||{};
+      const a=s.account||{};
+      const active=!!s.active;
+      const fills=Number(s.fills||0);
+      const limits=s.limits||{};
+      const maxFills=Number(limits.max_fills||20);
+      const maxMinutes=Number(limits.max_minutes||120);
+      const mins=sessionMinutes(s);
+      const botPos=Math.max(0,num(s.bot_position_btc)||0);
+      const totalBtc=num(a.btc)||0;
+      const marketPrice=num(a.price)||num(s.price)||0;
+      const btcValue=totalBtc*marketPrice;
+
+      $('edge-badge').textContent=j.online?'ONLINE':'OFFLINE';
+      $('edge-badge').className='edge-badge '+(j.online?'online':'offline');
+
+      $('edge-mode').textContent=active?'TESTNET LIVE':'OFF';
+      $('edge-state').textContent=s.state_id||'—';
+      $('edge-usdt').textContent=money(a.usdt);
+      $('edge-btc-total').textContent=btc(a.btc);
+      $('edge-btc-value').textContent=money(btcValue);
+      $('edge-equity').textContent=money(a.equity_usdt);
+      $('edge-position').textContent=btc(s.bot_position_btc);
+      $('edge-pnl').textContent=money(s.session_pnl_usdt);
+      $('edge-price').textContent=marketPrice?fmt(marketPrice,2)+' USDT':'—';
+      $('edge-action').textContent=(s.action||'—')+(s.strategy?' · '+s.strategy:'');
+      $('edge-fills').textContent=fills+' fill'+(fills===1?'':'s');
+      $('edge-fill-progress').textContent=fills+' / '+maxFills+' fills';
+
+      $('edge-engine-chip').textContent='ENGINE · '+(active?'RUNNING':'STOPPED');
+      $('edge-engine-chip').className='edge-chip '+(active?'good':'');
+      $('edge-session-chip').textContent=active
+        ? 'SESSION · '+mins+' / '+maxMinutes+' min'
+        : 'SESSION · IDLE';
+
+      const execChip=$('edge-exec-chip');
+      const dot=$('edge-activity-dot');
+      let title='STOPPED';
+      let detail='Press START to begin a Testnet session.';
+      let exec='EXECUTION · IDLE';
+      let dotClass='edge-dot';
+
+      if(active && botPos>0){
+        title='POSITION OPEN';
+        detail='The bot currently holds '+btc(botPos)+' opened during this session.';
+        exec='EXECUTION · POSITION OPEN';
+        dotClass='edge-dot live';
+      }else if(active && fills>0){
+        title='TRADING · '+fills+' FILLS';
+        detail='Orders have executed in this session. The engine continues scanning for the next valid action.';
+        exec='EXECUTION · FILLS RECORDED';
+        dotClass='edge-dot live';
+      }else if(active){
+        title='SCANNING · NO FILLS YET';
+        detail='The engine is live. It is evaluating every closed candle, but no order has passed all execution gates yet.';
+        exec='EXECUTION · WAITING FOR ENTRY';
+        dotClass='edge-dot wait';
+      }
+
+      $('edge-activity-title').textContent=title;
+      $('edge-activity-detail').textContent=detail;
+      $('edge-activity-dot').className=dotClass;
+      execChip.textContent=exec;
+      execChip.className='edge-chip '+(active?(fills>0||botPos>0?'good':'warn'):'');
+      renderTrades(s.session_trades,active);
+      setControls(j,s);
+
+      $('edge-note').textContent=j.online
+        ? 'Phone heartbeat '+Math.round(j.heartbeat_age_s||0)+'s ago · DB backup '
+          +(j.checkpoint.exists?'ACTIVE':'WARMUP')+' · queued '+j.pending_commands.length
+        : 'Phone agent offline. The local daemon will reconnect automatically when running.';
+    }catch(e){
+      $('edge-note').textContent='Edge status error: '+e.message;
+    }
+  }
+
+  $('edge-start').onclick=async()=>{
+    if($('edge-start').disabled)return;
+    try{
+      $('edge-start').disabled=true;
+      await post('/observer/edge/command',{
+        command:'start',
+        params:{max_order_usdt:10,max_fills:20,max_minutes:120}
+      });
+      $('edge-note').textContent='START queued for phone.';
+      setTimeout(refresh,500);
+    }catch(e){
+      $('edge-note').textContent=e.message;
+      refresh();
+    }
+  };
+
+  $('edge-close').onclick=async()=>{
+    if($('edge-close').disabled)return;
+    try{
+      $('edge-close').disabled=true;
+      await post('/observer/edge/command',{command:'close'});
+      $('edge-note').textContent='CLOSE queued.';
+      setTimeout(refresh,500);
+    }catch(e){
+      $('edge-note').textContent=e.message;
+      refresh();
+    }
+  };
+
+  $('edge-stop').onclick=async()=>{
+    if($('edge-stop').disabled)return;
+    try{
+      $('edge-stop').disabled=true;
+      await post('/observer/edge/command',{command:'stop'});
+      $('edge-note').textContent='STOP & FLATTEN queued.';
+      setTimeout(refresh,500);
+    }catch(e){
+      $('edge-note').textContent=e.message;
+      refresh();
+    }
+  };
+
+  refresh();
+  setInterval(refresh,3000);
+})();
+</script>
+

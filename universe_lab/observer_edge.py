@@ -214,6 +214,23 @@ def create_command():
     if command not in {"start", "stop", "close", "status"}:
         return jsonify({"ok": False, "error": "invalid command"}), 400
 
+    if command == "start":
+        live = _snapshot()
+        live_status = live.get("status") or {}
+        pending = live.get("pending_commands") or []
+        if live.get("online") and live_status.get("active"):
+            return jsonify({
+                "ok": False,
+                "error": "already_running",
+                "message": "Testnet runtime is already running.",
+            }), 409
+        if any(item.get("command") == "start" for item in pending):
+            return jsonify({
+                "ok": False,
+                "error": "start_already_queued",
+                "message": "START is already queued.",
+            }), 409
+
     params = data.get("params") if isinstance(data.get("params"), dict) else {}
     if command == "start":
         try:

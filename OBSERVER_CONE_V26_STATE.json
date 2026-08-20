@@ -1,0 +1,23 @@
+{
+  "version": "2.6",
+  "feature": "Interactive Adaptive Future Cone",
+  "replaces": "Closed-Candle Cycle v2.5 cards",
+  "interactive": [
+    "tap_horizon",
+    "tap_signal",
+    "tap_state",
+    "tap_decision_gate",
+    "tap_memory",
+    "mode_switch"
+  ],
+  "modes": [
+    "all",
+    "horizons",
+    "signals",
+    "learning_loop"
+  ],
+  "live_refresh_seconds": 3,
+  "db_schema_changes": false,
+  "observer_restart_required": false,
+  "backup": ".universe_lab_backup_observer_cone_v26_20260820-035231"
+}

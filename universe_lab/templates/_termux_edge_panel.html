@@ -22,6 +22,39 @@
     .edge-dot{width:10px;height:10px;border-radius:50%;background:#667789;display:inline-block;margin-right:7px}
     .edge-dot.live{background:#65e6ae;box-shadow:0 0 12px rgba(101,230,174,.65)}
     .edge-dot.wait{background:#ffd27b;box-shadow:0 0 12px rgba(255,210,123,.5)}
+
+    .edge-readiness{margin:18px 0;border:1px solid rgba(105,190,230,.24);border-radius:18px;padding:15px;background:rgba(4,17,30,.48)}
+    .edge-readiness-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+    .edge-readiness-kicker{font-size:.70rem;letter-spacing:.10em;color:#7dd3fc;text-transform:uppercase;font-weight:800}
+    .edge-readiness-title{font-size:1.12rem;font-weight:850;margin-top:4px}
+    .edge-readiness-count{border:1px solid rgba(130,180,215,.28);border-radius:999px;padding:8px 11px;font-size:.78rem;font-weight:800;white-space:nowrap}
+    .edge-readiness-count.good{color:#7ef0bd;border-color:rgba(80,210,150,.42)}
+    .edge-readiness-count.warn{color:#ffcf7b;border-color:rgba(255,190,90,.40)}
+    .edge-readiness-count.bad{color:#ff929e;border-color:rgba(255,100,120,.42)}
+    .edge-readiness-bar{height:8px;border-radius:999px;overflow:hidden;background:rgba(120,150,175,.16);margin:4px 0 14px}
+    .edge-readiness-fill{height:100%;width:0%;background:linear-gradient(90deg,#55c8ff,#69e4ac);transition:width .35s ease}
+    .edge-readiness-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .edge-readiness-summary .edge-chip{font-size:.72rem}
+    .edge-gate-list{display:grid;gap:8px}
+    .edge-gate{display:grid;grid-template-columns:24px minmax(105px,.72fr) minmax(0,1.5fr);gap:10px;align-items:center;border:1px solid rgba(130,180,215,.16);border-radius:13px;padding:10px 11px}
+    .edge-gate.pass{border-color:rgba(80,210,150,.24);background:rgba(30,110,80,.07)}
+    .edge-gate.fail{border-color:rgba(255,105,125,.25);background:rgba(120,30,45,.07)}
+    .edge-gate.wait{border-color:rgba(255,195,100,.25);background:rgba(120,85,20,.07)}
+    .edge-gate-icon{font-size:1rem;font-weight:900;text-align:center}
+    .edge-gate.pass .edge-gate-icon{color:#7ef0bd}
+    .edge-gate.fail .edge-gate-icon{color:#ff8b99}
+    .edge-gate.wait .edge-gate-icon{color:#ffd27b}
+    .edge-gate-name{font-size:.80rem;font-weight:800}
+    .edge-gate-detail{font-size:.76rem;color:#91a5ba;line-height:1.35;overflow-wrap:anywhere}
+    .edge-readiness-blockers{margin-top:12px;padding-top:12px;border-top:1px solid rgba(130,180,215,.14)}
+    .edge-blocker-label{font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#91a5ba;font-weight:800;margin-bottom:7px}
+    .edge-blocker-chips{display:flex;gap:7px;flex-wrap:wrap}
+    .edge-blocker{font-size:.68rem;border:1px solid rgba(255,110,130,.28);color:#ff9ba6;border-radius:999px;padding:6px 9px}
+    .edge-readiness-foot{font-size:.72rem;color:#7f93a7;margin-top:10px;line-height:1.4}
+    @media(max-width:640px){
+      .edge-gate{grid-template-columns:22px 110px minmax(0,1fr);gap:8px}
+    }
+
     .edge-trades{margin:18px 0;border-top:1px solid rgba(130,180,215,.16);padding-top:16px}
     .edge-trades-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
     .edge-trades-head h3{margin:0;font-size:1rem}
@@ -84,6 +117,42 @@
 
     <div><span>MARKET PRICE</span><b id="edge-price">—</b></div>
     <div><span>MODEL ACTION</span><b id="edge-action">—</b></div>
+  </div>
+
+
+  <div class="edge-readiness" id="edge-readiness">
+    <div class="edge-readiness-head">
+      <div>
+        <div class="edge-readiness-kicker" id="edge-readiness-kicker">ENTRY READINESS</div>
+        <div class="edge-readiness-title" id="edge-readiness-title">WHY NOT ENTER?</div>
+      </div>
+      <span class="edge-readiness-count warn" id="edge-readiness-count">0 / 10</span>
+    </div>
+
+    <div class="edge-readiness-bar">
+      <div class="edge-readiness-fill" id="edge-readiness-fill"></div>
+    </div>
+
+    <div class="edge-readiness-summary">
+      <span class="edge-chip" id="edge-readiness-direction">DIRECTION · —</span>
+      <span class="edge-chip" id="edge-readiness-primary">MAIN BLOCKER · —</span>
+      <span class="edge-chip" id="edge-readiness-score">ERL1 · —</span>
+    </div>
+
+    <div class="edge-gate-list" id="edge-gate-list">
+      <div class="edge-empty">Waiting for current MOR gate state.</div>
+    </div>
+
+    <div class="edge-readiness-blockers" id="edge-readiness-blockers">
+      <div class="edge-blocker-label">ERL1 blockers</div>
+      <div class="edge-blocker-chips" id="edge-blocker-chips">
+        <span class="edge-chip">—</span>
+      </div>
+    </div>
+
+    <div class="edge-readiness-foot">
+      Gate readiness is diagnostic, not a probability of profit. All required gates must pass before strict Testnet execution.
+    </div>
   </div>
 
   <div class="edge-trades">
@@ -182,6 +251,180 @@
     }).join('');
   }
 
+
+  function renderReadiness(j,s){
+    const snap=(s.runtime_status&&typeof s.runtime_status==='object')
+      ? s.runtime_status : {};
+    const raw=(snap.current_state&&typeof snap.current_state==='object')
+      ? snap.current_state : {};
+
+    const er=(raw.execution_readiness&&typeof raw.execution_readiness==='object')
+      ? raw.execution_readiness : {};
+    const tg=(er.candidate_tradeability_gate&&typeof er.candidate_tradeability_gate==='object')
+      ? er.candidate_tradeability_gate
+      : ((raw.tradeability_gate&&typeof raw.tradeability_gate==='object')?raw.tradeability_gate:{});
+    const eg=(er.candidate_edge_gate&&typeof er.candidate_edge_gate==='object')
+      ? er.candidate_edge_gate
+      : ((raw.edge_gate&&typeof raw.edge_gate==='object')?raw.edge_gate:{});
+
+    const action=String(
+      er.action || raw.action || s.action || 'HOLD'
+    ).toUpperCase();
+
+    const blockers=Array.isArray(er.blockers)
+      ? er.blockers.map(x=>String(x))
+      : ((((j.observer||{}).execution||{}).blockers)||[]).map(x=>String(x));
+
+    const blockerSet=new Set(blockers);
+    const signalPass=(action==='BUY'||action==='SELL');
+
+    const tradeScore=num(tg.score);
+    const tradeThreshold=num(tg.threshold)??1.0;
+    const tradePass=!!tg.allowed;
+    const tradeDetail=tradeScore===null
+      ? (tg.reason||'no score')
+      : 'score '+fmt(tradeScore,3)+' / '+fmt(tradeThreshold,2)
+        +(tg.motion_budget_pct!=null?' · motion '+fmt(tg.motion_budget_pct,3)+'%':'')
+        +(tg.required_move_pct!=null?' · need '+fmt(tg.required_move_pct,3)+'%':'');
+
+    const edgeInfo=(eg.horizon_info&&typeof eg.horizon_info==='object')
+      ? eg.horizon_info : eg;
+    const edgeVal=num(edgeInfo.avg_trade_net_edge_pct);
+    const edgeN=num(edgeInfo.min_samples_across_horizons);
+    const edgePass=!!eg.allowed;
+    const edgeDetail=(edgeVal===null?'edge —':('edge '+(edgeVal>=0?'+':'')+fmt(edgeVal,4)+'%'))
+      +' · n '+(edgeN===null?'—':fmt(edgeN,0))+' / 10'
+      +(eg.reason?' · '+eg.reason:'');
+
+    const geo=num(er.geometry_alignment)??0;
+    const geoThreshold=0.50;
+    const geoPass=geo>=geoThreshold && !blockerSet.has('GEOMETRY_NOT_ALIGNED');
+    const geoGap=Math.max(0,geoThreshold-geo);
+    const geoDetail=fmt(geo*100,0)+'% / 50%'
+      +(geoPass?'':(' · need +'+fmt(geoGap*100,0)+' pp'));
+
+    const evidence=Array.isArray(er.validated_flags)?er.validated_flags:[];
+    const evidencePass=evidence.length>0 && !blockerSet.has('NO_VALIDATED_ACTIVE_FLAG');
+    const evidenceDetail=evidence.length+' validated structural flag'
+      +(evidence.length===1?'':'s')+' · need ≥1';
+
+    const gsrCont=num(er.gsr1_continuation);
+    const gsrRev=num(er.gsr1_reversal);
+    const gsrWarm=blockerSet.has('GSR1_WARMUP');
+    const gsrPass=!gsrWarm
+      && gsrCont!==null
+      && gsrRev!==null
+      && gsrCont>=0.42
+      && gsrRev<=0.55
+      && !blockerSet.has('GSR1_CONTINUATION_LOW')
+      && !blockerSet.has('GSR1_REVERSAL_RISK');
+    const gsrDetail=gsrWarm
+      ? 'warmup'
+      : 'continuation '+(gsrCont===null?'—':fmt(gsrCont,2))+' / 0.42'
+        +' · reversal '+(gsrRev===null?'—':fmt(gsrRev,2))+' ≤ 0.55';
+
+    const ehStatus=String(er.eh1_status||'NO DATA').toUpperCase();
+    const ehScore=num(er.eh1_score);
+    const ehPass=ehStatus==='READY'
+      && (ehScore===null || ehScore>=0.65)
+      && !blockerSet.has('EH1_NOT_READY');
+    const ehDetail=ehStatus
+      +' · score '+(ehScore===null?'—':fmt(ehScore,2))+' / 0.65'
+      +(er.execution_horizon?' · H'+er.execution_horizon:'');
+
+    const phasePass=!blockerSet.has('PHASE_FRONT_OPPOSES_ACTION');
+    const pfl=(er.pfl1&&typeof er.pfl1==='object')?er.pfl1:{};
+    const phaseDetail=(pfl.front_direction||'NONE')
+      +(pfl.propagation_direction?' · '+pfl.propagation_direction:'')
+      +(phasePass?'':' · opposes action');
+
+    const preflightPass=er.preflight_ok===true
+      && !blockerSet.has('EXCHANGE_PREFLIGHT');
+    const preflightDetail=String(er.preflight_reason||(
+      preflightPass?'OK':'NOT CHECKED'
+    ));
+
+    const erlScore=num(er.score);
+    const erlPass=erlScore!==null
+      && erlScore>=0.72
+      && !blockerSet.has('ERL1_SCORE_LOW');
+    const erlGap=erlScore===null?null:Math.max(0,0.72-erlScore);
+    const erlDetail='score '+(erlScore===null?'—':fmt(erlScore,3))+' / 0.72'
+      +(!erlPass&&erlGap!==null?' · need +'+fmt(erlGap,3):'');
+
+    const source=String(er.action_source||'NONE');
+    const sourcePass=signalPass && (
+      source==='STRATEGY' || !blockerSet.has('GEOMETRY_ACTION_TESTNET_ONLY')
+    );
+    const sourceDetail=signalPass
+      ? action+' · source '+source
+      : 'HOLD · need BUY or SELL strategy signal';
+
+    const gates=[
+      {name:'Direction',pass:signalPass&&sourcePass,detail:sourceDetail},
+      {name:'Tradeability',pass:tradePass,detail:tradeDetail},
+      {name:'Positive edge',pass:edgePass,detail:edgeDetail},
+      {name:'Geometry',pass:geoPass,detail:geoDetail},
+      {name:'Evidence',pass:evidencePass,detail:evidenceDetail},
+      {name:'GSR1 stability',pass:gsrPass,detail:gsrDetail},
+      {name:'EH1 horizon',pass:ehPass,detail:ehDetail},
+      {name:'Phase front',pass:phasePass,detail:phaseDetail},
+      {name:'Exchange',pass:preflightPass,detail:preflightDetail},
+      {name:'ERL1 score',pass:erlPass,detail:erlDetail},
+    ];
+
+    const passed=gates.filter(g=>g.pass).length;
+    const total=gates.length;
+    const pct=Math.round(passed/total*100);
+    const firstFail=gates.find(g=>!g.pass);
+    const ready=passed===total && signalPass;
+
+    const kicker=action==='BUY'?'BUY READINESS'
+      : action==='SELL'?'SELL READINESS'
+      : 'ENTRY READINESS';
+    const title=ready
+      ? action+' ENTRY READY'
+      : (action==='HOLD'?'WHY NO ENTRY?':'WHY NOT '+action+'?');
+
+    $('edge-readiness-kicker').textContent=kicker;
+    $('edge-readiness-title').textContent=title;
+    $('edge-readiness-count').textContent=passed+' / '+total;
+    $('edge-readiness-count').className='edge-readiness-count '
+      +(ready?'good':pct>=70?'warn':'bad');
+    $('edge-readiness-fill').style.width=pct+'%';
+
+    $('edge-readiness-direction').textContent='DIRECTION · '+action;
+    $('edge-readiness-direction').className='edge-chip '+(signalPass?'good':'warn');
+    $('edge-readiness-primary').textContent='MAIN BLOCKER · '+(
+      ready?'NONE':(blockers[0]||(firstFail?firstFail.name.toUpperCase():'UNKNOWN'))
+    );
+    $('edge-readiness-primary').className='edge-chip '+(ready?'good':'warn');
+    $('edge-readiness-score').textContent='ERL1 · '+(
+      erlScore===null?'—':fmt(erlScore,3)
+    )+' / 0.72';
+    $('edge-readiness-score').className='edge-chip '+(erlPass?'good':'warn');
+
+    $('edge-gate-list').innerHTML=gates.map((g,i)=>{
+      const cls=g.pass?'pass':'fail';
+      const icon=g.pass?'✓':'×';
+      return '<div class="edge-gate '+cls+'">'
+        +'<div class="edge-gate-icon">'+icon+'</div>'
+        +'<div class="edge-gate-name">'+String(i+1).padStart(2,'0')+' · '+esc(g.name)+'</div>'
+        +'<div class="edge-gate-detail">'+esc(g.detail)+'</div>'
+        +'</div>';
+    }).join('');
+
+    const chips=$('edge-blocker-chips');
+    if(blockers.length){
+      chips.innerHTML=blockers.map(b=>
+        '<span class="edge-blocker">'+esc(b)+'</span>'
+      ).join('');
+    }else{
+      chips.innerHTML='<span class="edge-chip good">NONE</span>';
+    }
+  }
+
+
   function setControls(j,s){
     const pending=Array.isArray(j.pending_commands)?j.pending_commands:[];
     const startQueued=pending.some(x=>x.command==='start');
@@ -274,6 +517,7 @@
       execChip.textContent=exec;
       execChip.className='edge-chip '+(active?(fills>0||botPos>0?'good':'warn'):'');
       renderTrades(s.session_trades,active);
+      renderReadiness(j,s);
       setControls(j,s);
 
       $('edge-note').textContent=j.online

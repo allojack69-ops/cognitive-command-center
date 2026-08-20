@@ -181,36 +181,26 @@
   const $=id=>document.getElementById(id);
 
   function pruneLegacyExecutionUI(){
-    // Never remove ancestor sections by text content.
-    // v1.7 accidentally matched #observer-console itself and removed the whole page.
-
     const canary=document.querySelector(".observer-canary-card");
     if(canary) canary.hidden=true;
 
     const actions=document.querySelector(".observer-actions");
-    if(actions){
-      actions.querySelectorAll("button").forEach(btn=>btn.hidden=true);
-    }
+    if(actions) actions.querySelectorAll("button").forEach(btn=>btn.hidden=true);
 
-    // Only hide exact legacy execution-card classes.
-    const exactCards=[
-      ...document.querySelectorAll(
-        ".observer-testnet-card,.observer-relay-card,.legacy-testnet-card,[data-legacy-execution='true']"
-      )
-    ];
-    for(const el of exactCards){
-      if(el.id==="edge-node-card") continue;
-      const text=(el.textContent||"").toUpperCase();
-      if(
-        text.includes("FRANKFURT EXECUTION RELAY") ||
-        text.includes("BINANCE SPOT TESTNET")
-      ){
-        el.hidden=true;
+    const labels=[...root.querySelectorAll(".eyebrow,h2,h3,strong")];
+    for(const label of labels){
+      const text=(label.textContent||"").trim().toUpperCase();
+      if(!text.includes("FRANKFURT EXECUTION RELAY")) continue;
+      const card=label.closest("section.card,details.card,.card");
+      if(card && card!==root && card.id!=="edge-node-card" && !card.querySelector("#edge-node-card")){
+        card.hidden=true;
       }
     }
   }
 
   pruneLegacyExecutionUI();
+  setTimeout(pruneLegacyExecutionUI,250);
+  setTimeout(pruneLegacyExecutionUI,1000);
 
   const post=async(url,body)=>{
     const r=await fetch(url,{

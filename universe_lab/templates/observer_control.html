@@ -519,6 +519,11 @@ async function startLiveCanary(){
   function render(data){
     const p=data.process||{},o=data.observer||{},s=o.state||{},residual=o.residual||{},execution=o.execution||{};
     $("runtime-badge").textContent=p.alive?"RUNNING":(p.engine_attached?"STOPPED":"ENGINE NOT ATTACHED"); $("runtime-badge").className="observer-runtime-badge "+(p.alive?"running":p.engine_attached?"stopped":"unattached");
+    if(data.edge_phone){
+      const ep=data.edge_phone;
+      $("runtime-badge").textContent=ep.online?(ep.active?"TESTNET RUNNING":"PHONE ONLINE · IDLE"):"PHONE OFFLINE";
+      $("runtime-badge").className="observer-runtime-badge "+(ep.online&&ep.active?"running":ep.online?"stopped":"unattached");
+    }
     $("btn-start").disabled=busy||p.alive||!p.engine_attached; $("btn-stop").disabled=busy||!p.alive; $("btn-restart").disabled=busy||!p.engine_attached;
     $("k-state").textContent=s.state_id||"—"; $("k-market-time").textContent=s.market_time||"—"; $("k-price").textContent=fmtNum(s.price,2); $("k-symbol").textContent=`${o.symbol||"—"} · ${o.interval||"—"}`; $("k-regime").textContent=s.regime||"—"; $("k-strategy").textContent=s.strategy||"—"; $("k-action").textContent=s.action||"—"; $("k-confidence").textContent=`p_success ${fmtPct01(s.p_success)}`; $("k-horizon").textContent=s.horizon??"—"; const residualN=Number(residual.comparisons||0);
     if(residualN<=0){
@@ -560,6 +565,11 @@ async function startLiveCanary(){
       const edgeResp=await edgeReq;
       if(edgeResp && edgeResp.ok){
         const edge=await edgeResp.json();
+        data.edge_phone={
+          online:!!edge.online,
+          active:!!(edge.status&&edge.status.active),
+          heartbeat_age_s:edge.heartbeat_age_s
+        };
         if(
           edge.ok &&
           edge.online &&

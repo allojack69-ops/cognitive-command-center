@@ -1,0 +1,17 @@
+{
+  "version": "2.9",
+  "feature": "Binance Spot Testnet full-cycle operator",
+  "real_money": false,
+  "testnet_rest": "https://testnet.binance.vision",
+  "testnet_ws": "wss://stream.testnet.binance.vision/ws/btcusdt@kline_1m",
+  "required_env": [
+    "BINANCE_TESTNET_API_KEY",
+    "BINANCE_TESTNET_API_SECRET"
+  ],
+  "persistence": {
+    "main_market_checkpoint_isolated": true,
+    "testnet_checkpoint_event": "observer_testnet_checkpoint_v29",
+    "testnet_trade_event": "observer_testnet_trade_v29",
+    "rolling_full_checkpoints": 24
+  }
+}

@@ -20,6 +20,32 @@
 
   <div class="observer-message" id="observer-message" aria-live="polite"></div>
 
+<!-- ===== Observer Safety + Canary v2.7 START ===== -->
+<section class="observer-v27-strip">
+  <div><span>AUTO BACKUP</span><b id="backup-badge">CHECKING</b><small id="backup-detail">—</small></div>
+  <div><span>EXECUTION PROFILE</span><b id="canary-profile">PAPER</b><small id="canary-creds">Binance credentials: checking</small></div>
+</section>
+
+<details class="card observer-canary-card">
+  <summary>
+    <span><b>LIVE CANARY</b><small>Real Binance Spot orders · strict ERL1 gates · auto-stop</small></span>
+    <strong>ARM</strong>
+  </summary>
+  <div class="observer-canary-body">
+    <p class="muted">No leverage. Research bypasses stay disabled. The process stops when the time limit or fill-count limit is reached.</p>
+    <div class="canary-input-grid">
+      <label>Max one order, USDT<input id="canary-max-order" type="number" min="1" max="25" step="1" inputmode="decimal" placeholder="required"></label>
+      <label>Max filled trades<input id="canary-max-trades" type="number" min="1" max="10" step="1" inputmode="numeric" placeholder="required"></label>
+      <label>Run time, minutes<input id="canary-max-minutes" type="number" min="5" max="180" step="5" inputmode="numeric" placeholder="required"></label>
+      <label>Confirmation<input id="canary-confirm" type="text" autocomplete="off" placeholder="type LIVE"></label>
+    </div>
+    <button type="button" id="btn-live-canary" class="observer-live-canary">ARM & START LIVE CANARY</button>
+    <div class="canary-running-meta" id="canary-running-meta"></div>
+    <p class="canary-warning">API key/secret must exist only in Render environment variables. Never paste the secret into this page or chat.</p>
+  </div>
+</details>
+<!-- ===== Observer Safety + Canary v2.7 END ===== -->
+
   <section class="observer-kpis">
     <div><span>STATE</span><b id="k-state">—</b><small id="k-market-time">—</small></div>
     <div><span>PRICE</span><b id="k-price">—</b><small id="k-symbol">—</small></div>
@@ -141,6 +167,26 @@
     <div><span>BEST HORIZON</span><b id="cone-read-horizon">—</b></div>
     <div><span>DECISION</span><b id="cone-read-decision">—</b></div>
   </div>
+
+<!-- ===== Entry Proximity v2.7 START ===== -->
+<div class="opportunity-panel" id="opportunity-panel">
+  <div class="opportunity-head">
+    <div><span>MODEL ENTRY PROXIMITY</span><h3 id="opp-title">Waiting for geometry</h3></div>
+    <b id="opp-status">NO DATA</b>
+  </div>
+  <div class="opportunity-price-row">
+    <div><span>CURRENT</span><strong id="opp-current">—</strong></div>
+    <div><span>MODEL ZONE</span><strong id="opp-zone">—</strong></div>
+    <div><span>DISTANCE</span><strong id="opp-distance">—</strong></div>
+  </div>
+  <div class="opportunity-scale">
+    <div class="opportunity-zone" id="opp-zone-bar"></div>
+    <div class="opportunity-marker" id="opp-marker"><i></i><span>NOW</span></div>
+  </div>
+  <div class="opportunity-scale-labels"><span id="opp-min">—</span><span id="opp-source">—</span><span id="opp-max">—</span></div>
+  <p class="muted opportunity-note" id="opp-note">This is model-relative proximity, not a guarantee of a profitable entry.</p>
+</div>
+<!-- ===== Entry Proximity v2.7 END ===== -->
 
   <div class="cone-inspector" id="cone-inspector" aria-live="polite">
     <div class="cone-inspector-kicker" id="cone-inspector-kicker">INTERACTIVE</div>
@@ -370,6 +416,94 @@ function applyConeMode(){
   document.querySelectorAll(".cone-mode").forEach(btn=>btn.classList.toggle("active",btn.dataset.coneMode===coneMode));
 }
 
+function renderV27(data){
+  const b=data.backup||{}, c=data.canary||{};
+  const backupBadge=$("backup-badge"), backupDetail=$("backup-detail");
+  if(backupBadge){
+    backupBadge.textContent=b.persistent?"DB SAFE":"DEGRADED";
+    backupBadge.className=b.persistent?"ok":"warn";
+    backupDetail.textContent=b.persistent
+      ? `${b.state_count||0} states · latest ${b.latest_state||"—"}`
+      : "persistent DATABASE_URL required";
+  }
+  if($("canary-profile")) $("canary-profile").textContent=c.profile||"PAPER";
+  if($("canary-creds")) $("canary-creds").textContent=`Binance credentials: ${c.credentials_ready?"READY":"MISSING"}`;
+  if($("canary-running-meta")){
+    $("canary-running-meta").textContent=c.profile==="LIVE_CANARY"
+      ? `LIVE fills ${c.live_fills||0}/${c.max_trades||"—"} · max order ${c.max_order_usdt||"—"} USDT · ${c.max_minutes||"—"} min`
+      : "Live canary is not armed.";
+  }
+  if($("btn-live-canary")) $("btn-live-canary").disabled=busy||(data.process||{}).alive;
+  renderOpportunity((data.observer||{}).opportunity||{});
+}
+
+function renderOpportunity(op){
+  if(!$("opportunity-panel")) return;
+  if(!op.available){
+    $("opp-title").textContent="Waiting for geometry";
+    $("opp-status").textContent="NO DATA";
+    $("opp-status").className="";
+    $("opp-current").textContent="—"; $("opp-zone").textContent="—"; $("opp-distance").textContent="—";
+    $("opp-zone-bar").style.width="0"; $("opp-marker").style.left="50%";
+    return;
+  }
+  const status=String(op.status||"NO DATA");
+  const role=op.role||"ZONE";
+  $("opp-title").textContent=`${op.action||"—"} · ${role}`;
+  $("opp-status").textContent=status.replaceAll("_"," ");
+  $("opp-status").className=status.toLowerCase();
+  $("opp-current").textContent=fmtNum(op.current_price,2);
+  $("opp-zone").textContent=`${fmtNum(op.zone_low,2)}–${fmtNum(op.zone_high,2)}`;
+  $("opp-distance").textContent=op.distance_abs<=0
+    ? "IN ZONE"
+    : `${fmtNum(op.distance_abs,2)} · ${fmtNum(op.distance_pct,3)}% · ${fmtNum(op.distance_atr,2)} ATR`;
+  $("opp-min").textContent=fmtNum(op.scale_min,2);
+  $("opp-max").textContent=fmtNum(op.scale_max,2);
+  $("opp-source").textContent=op.source||"—";
+  $("opp-zone-bar").style.left=`${Math.max(0,Math.min(100,Number(op.zone_left_pct)||0))}%`;
+  $("opp-zone-bar").style.width=`${Math.max(1,Math.min(100,Number(op.zone_width_pct)||0))}%`;
+  $("opp-marker").style.left=`${Math.max(0,Math.min(100,Number(op.marker_pct)||0))}%`;
+  const noteMap={
+    IN_ZONE:"Current price is inside the model-relative entry zone.",
+    APPROACHING:"Current price is approaching the model-relative entry zone.",
+    NEAR:"The model zone is nearby, but price is not there yet.",
+    FAR:"Current price is far from the model-relative entry zone.",
+    SUPPORT_BROKEN:"Price is below the support-based BUY zone; the structural premise may be broken.",
+    RESISTANCE_BROKEN:"Price is above the resistance-based SELL zone; the structural premise may be broken."
+  };
+  $("opp-note").textContent=(noteMap[status]||"Model-relative entry proximity.")+" This is not a profit guarantee.";
+}
+
+async function startLiveCanary(){
+  if(busy)return;
+  const body={
+    max_order_usdt:$("canary-max-order").value,
+    max_trades:$("canary-max-trades").value,
+    max_minutes:$("canary-max-minutes").value,
+    confirm:$("canary-confirm").value.trim()
+  };
+  busy=true;
+  $("observer-message").textContent="ARMING LIVE CANARY…";
+  $("observer-message").className="observer-message";
+  try{
+    const r=await fetch("/observer/api/start-live-canary",{
+      method:"POST",
+      headers:{"X-CSRF-Token":csrf,"Accept":"application/json","Content-Type":"application/json"},
+      body:JSON.stringify(body)
+    });
+    const data=await r.json();
+    $("observer-message").textContent=data.message||(data.ok?"LIVE CANARY STARTED":"Blocked");
+    $("observer-message").className="observer-message "+(data.ok?"ok":"error");
+    if(data.observer) render(data);
+  }catch(err){
+    $("observer-message").textContent=err.message;
+    $("observer-message").className="observer-message error";
+  }finally{
+    busy=false;
+    await refresh();
+  }
+}
+
   function render(data){
     const p=data.process||{},o=data.observer||{},s=o.state||{},residual=o.residual||{},execution=o.execution||{};
     $("runtime-badge").textContent=p.alive?"RUNNING":(p.engine_attached?"STOPPED":"ENGINE NOT ATTACHED"); $("runtime-badge").className="observer-runtime-badge "+(p.alive?"running":p.engine_attached?"stopped":"unattached");
@@ -387,11 +521,13 @@ function applyConeMode(){
     renderChart(o.series||[]); renderPipeline(o.pipeline||[]); renderTradeability(o.tradeability||[]); renderCounts(o.counts||{}); renderModules(o.modules||[]); renderCone(o,p);
     const blockers=execution.blockers||[]; $("observer-blockers").innerHTML=blockers.length?blockers.map(x=>`<span>${esc(x)}</span>`).join(""):`<span class="ok">No execution blockers reported.</span>`;
     const logs=data.logs||[]; $("observer-log").textContent=logs.length?logs.join("\n"):"No engine log output yet.";
+    renderV27(data);
   }
 
   async function refresh(){try{const r=await fetch("{{ url_for('observer_control.status_api') }}",{cache:"no-store"});if(!r.ok)throw new Error(`status ${r.status}`);render(await r.json());}catch(err){$("observer-message").textContent="Status refresh failed: "+err.message;$("observer-message").className="observer-message error";}}
   async function action(name){if(busy)return;busy=true;$("observer-message").textContent=`${name.toUpperCase()}…`;$("observer-message").className="observer-message";try{const r=await fetch(`/observer/api/${name}`,{method:"POST",headers:{"X-CSRF-Token":csrf,"Accept":"application/json"}});const data=await r.json();$("observer-message").textContent=data.message||(data.ok?"OK":"Failed");$("observer-message").className="observer-message "+(data.ok?"ok":"error");render(data);}catch(err){$("observer-message").textContent=err.message;$("observer-message").className="observer-message error";}finally{busy=false;await refresh();}}
   $("btn-start").addEventListener("click",()=>action("start")); $("btn-stop").addEventListener("click",()=>action("stop")); $("btn-restart").addEventListener("click",()=>action("restart"));
+  $("btn-live-canary").addEventListener("click",startLiveCanary);
 
 
 render({{ initial|tojson }}); setInterval(refresh,3000); document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh();});

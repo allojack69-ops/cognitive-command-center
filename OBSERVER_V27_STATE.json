@@ -1,0 +1,23 @@
+{
+  "version": "2.7",
+  "features": [
+    "Postgres state archive every closed candle",
+    "compressed rolling runtime checkpoints",
+    "automatic restore before Observer start",
+    "background checkpoint watchdog independent of browser polling",
+    "LIVE CANARY UI with required user limits",
+    "max-order / max-trades / max-duration hard caps",
+    "strict ERL1 gates and no research bypass",
+    "model entry proximity gauge from GEO3 log levels with micro-range fallback"
+  ],
+  "default_execution": "PAPER",
+  "live_canary_requires": [
+    "Render BINANCE_API_KEY",
+    "Render BINANCE_API_SECRET",
+    "admin confirmation LIVE",
+    "max order",
+    "max trades",
+    "duration"
+  ],
+  "backup": ".universe_lab_backup_observer_v27_20260820-041423"
+}

@@ -57,5 +57,35 @@ class LabExternalResult(Base):
     def payload(self):
         return json.loads(self.payload_json)
 
+class ObserverStateRecord(Base):
+    """Durable lightweight record for every observed closed-candle state."""
+    __tablename__ = "observer_state_records"
+    __table_args__ = (
+        UniqueConstraint("session_id", "state_id", name="uq_observer_state_session"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(String(96), index=True, nullable=False, default="unknown")
+    state_id: Mapped[str] = mapped_column(String(40), index=True, nullable=False)
+    market_time: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    action: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    regime: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+    def payload(self):
+        return json.loads(self.payload_json)
+
+
+class ObserverRuntimeCheckpoint(Base):
+    """Compressed full runtime checkpoint used to restore Observer after restart/redeploy."""
+    __tablename__ = "observer_runtime_checkpoints"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(String(96), index=True, nullable=False, default="unknown")
+    state_id: Mapped[str] = mapped_column(String(40), index=True, nullable=False)
+    runtime_gzip_b64: Mapped[str] = mapped_column(Text, nullable=False)
+    status_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
 def init_lab_models():
     Base.metadata.create_all(engine)

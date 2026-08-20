@@ -181,20 +181,36 @@
   const $=id=>document.getElementById(id);
 
   function pruneLegacyExecutionUI(){
-    const candidates=[...document.querySelectorAll("section.card, details.card, section, details")];
-    for(const el of candidates){
-      if(el.id==="edge-node-card") continue;
-      const text=(el.textContent||"").toUpperCase();
-      if(text.includes("FRANKFURT EXECUTION RELAY")) el.remove();
-    }
+    // Never remove ancestor sections by text content.
+    // v1.7 accidentally matched #observer-console itself and removed the whole page.
+
     const canary=document.querySelector(".observer-canary-card");
     if(canary) canary.hidden=true;
+
     const actions=document.querySelector(".observer-actions");
-    if(actions) actions.querySelectorAll("button").forEach(btn=>btn.hidden=true);
+    if(actions){
+      actions.querySelectorAll("button").forEach(btn=>btn.hidden=true);
+    }
+
+    // Only hide exact legacy execution-card classes.
+    const exactCards=[
+      ...document.querySelectorAll(
+        ".observer-testnet-card,.observer-relay-card,.legacy-testnet-card,[data-legacy-execution='true']"
+      )
+    ];
+    for(const el of exactCards){
+      if(el.id==="edge-node-card") continue;
+      const text=(el.textContent||"").toUpperCase();
+      if(
+        text.includes("FRANKFURT EXECUTION RELAY") ||
+        text.includes("BINANCE SPOT TESTNET")
+      ){
+        el.hidden=true;
+      }
+    }
   }
+
   pruneLegacyExecutionUI();
-  const legacyObserver=new MutationObserver(pruneLegacyExecutionUI);
-  legacyObserver.observe(root,{childList:true,subtree:true});
 
   const post=async(url,body)=>{
     const r=await fetch(url,{

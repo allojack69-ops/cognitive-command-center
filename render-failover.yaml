@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: cognitive-command-center-recovery
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    autoDeploy: true
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: ADMIN_KEY
+        sync: false
+      - key: COOKIE_SECURE
+        value: "1"

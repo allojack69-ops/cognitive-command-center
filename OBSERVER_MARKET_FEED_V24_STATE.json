@@ -1,0 +1,14 @@
+{
+  "version": "2.4",
+  "purpose": "switch Observer public market feed to Binance market-data-only endpoints",
+  "rest": "https://data-api.binance.vision/api/v3/klines",
+  "websocket": "wss://data-stream.binance.vision/ws/btcusdt@kline_1m",
+  "execution_endpoint_changed": false,
+  "execution_mode": "PAPER_LOCKED",
+  "credentials_required": false,
+  "overrides": [
+    "MOR_MARKET_REST_URL",
+    "MOR_MARKET_WS_URL"
+  ],
+  "backup": ".universe_lab_backup_observer_market_v24_20260820-032241"
+}

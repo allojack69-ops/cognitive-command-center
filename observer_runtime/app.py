@@ -459,8 +459,14 @@ ANALYSIS_EXPORT_FULL_RECENT = max(100, int(os.getenv("MOR_EXPORT_FULL_RECENT", "
 TESTNET_RELAX_GATES = os.getenv("MOR_TESTNET_RELAX_GATES", "0").strip() == "1"
 EXCHANGE_PREFLIGHT_ORDER_TEST = os.getenv("MOR_PREFLIGHT_ORDER_TEST", "0").strip() == "1"
 
-WS_URL = "wss://stream.binance.com:9443/ws/btcusdt@kline_1m"
-REST_BASE = "https://api.binance.com/api/v3/klines"
+WS_URL = os.getenv(
+    "MOR_MARKET_WS_URL",
+    "wss://data-stream.binance.vision/ws/btcusdt@kline_1m",
+).strip()
+REST_BASE = os.getenv(
+    "MOR_MARKET_REST_URL",
+    "https://data-api.binance.vision/api/v3/klines",
+).strip()
 
 os.makedirs("storage", exist_ok=True)
 
@@ -24055,6 +24061,8 @@ async def main():
     print("MOR Trader v1.23")
     print("PFL1 + EFS1 + BPM1 BIPOLAR PRESSURE + GSR1 + EH1 + CGE1 + AAL1 + SCR1/GAP1/GRC1/RES1 SESSION GAP LAB + ERL1")
     print("PAIR:", SYMBOL)
+    print("MARKET REST:", REST_BASE)
+    print("MARKET WS:", WS_URL)
     print(
         "EXECUTION BRIDGE:",
         EXECUTION_READINESS_VERSION,

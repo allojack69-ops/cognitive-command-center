@@ -924,3 +924,36 @@ footer {
 }
 
 /* ===== Universe Lab DOM Background v1.8 END ===== */
+
+/* ===== MOBILE STATE FIELD FIX v1.9 ===== */
+
+/* Desktop */
+.universe-bg-layer {
+  background-image: url("/static/universe/universe_bg_acrylic.png?v=19") !important;
+  opacity: .82 !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+/* Phone: use the original vertical image instead of cropping the 16:9 background */
+@media (max-width: 700px) {
+  .universe-bg-layer {
+    background-image: url("/static/universe/state_field_01.jpg?v=19") !important;
+    background-size: cover !important;
+    background-position: center 20% !important;
+    opacity: .72 !important;
+    filter: saturate(1.15) contrast(1.08) brightness(.82) !important;
+  }
+
+  .universe-bg-veil {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(3,7,14,.30) 0%,
+        rgba(3,7,14,.38) 45%,
+        rgba(3,7,14,.55) 100%
+      ) !important;
+  }
+}
+
+/* ===== END MOBILE STATE FIELD FIX v1.9 ===== */

@@ -68,7 +68,7 @@ def _configured_command():
             return None
 
     runtime = _runtime_dir()
-    for name in ("run_observer.py", "main.py", "observer.py", "trader.py"):
+    for name in ("run_observer.py", "main.py", "observer.py", "trader.py", "app.py"):
         candidate = runtime / name
         if candidate.exists():
             return [sys.executable, name]
@@ -130,6 +130,28 @@ def _process_info():
     }
 
 
+
+def _safe_observer_env():
+    env = os.environ.copy()
+
+    # Phase 1 safety lock: public market observation + paper simulation only.
+    # The Observer child receives no exchange credentials.
+    env["MOR_EXECUTION_MODE"] = "PAPER"
+    env["MOR_TESTNET_RELAX_GATES"] = "0"
+    env["MOR_TESTNET_GEOMETRY_ACTIONS"] = "0"
+    env["MOR_TESTNET_ACTION_ARBITRATION"] = "0"
+    env["MOR_PREFLIGHT_ORDER_TEST"] = "0"
+    env["MOR_LIVE_ARM"] = ""
+    env.pop("BINANCE_API_KEY", None)
+    env.pop("BINANCE_API_SECRET", None)
+
+    # Android download paths don't exist on Render.
+    env["MOR_EXPORT_DOWNLOAD_PATH"] = "storage/MOR_latest_export.json"
+    env["MOR_EXPORT_FULL_DOWNLOAD_PATH"] = "storage/MOR_export_full.json"
+    env["MOR_OBSERVER_STATUS_FILE"] = "storage/observer_status.json"
+    return env
+
+
 def _start_process():
     info = _process_info()
     if info["alive"]:
@@ -142,7 +164,7 @@ def _start_process():
     if not command:
         return False, (
             "Observer engine entrypoint is not attached. Expected "
-            "run_observer.py/main.py/observer.py/trader.py or OBSERVER_COMMAND_JSON."
+            "run_observer.py/main.py/observer.py/trader.py/app.py or OBSERVER_COMMAND_JSON."
         )
 
     LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -156,7 +178,7 @@ def _start_process():
             stderr=subprocess.STDOUT,
             stdin=subprocess.DEVNULL,
             start_new_session=True,
-            env=os.environ.copy(),
+            env=_safe_observer_env(),
         )
     except Exception as exc:
         log_handle.close()
@@ -187,11 +209,11 @@ def _stop_process():
     try:
         try:
             pgid = os.getpgid(pid)
-            os.killpg(pgid, signal.SIGTERM)
+            os.killpg(pgid, signal.SIGINT)
         except Exception:
-            os.kill(pid, signal.SIGTERM)
+            os.kill(pid, signal.SIGINT)
 
-        deadline = time.time() + 8
+        deadline = time.time() + 12
         while time.time() < deadline:
             if not _pid_alive(pid):
                 break
@@ -220,6 +242,7 @@ def _read_json(path):
 def _snapshot_from_runtime():
     runtime = _runtime_dir()
     candidates = [
+        runtime / "storage" / "observer_status.json",
         runtime / "storage" / "mor_analysis_export_latest.json",
         runtime / "mor_analysis_export_latest.json",
         runtime / "storage" / "MOR_latest_export.json",

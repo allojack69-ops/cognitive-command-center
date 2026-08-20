@@ -1,0 +1,14 @@
+{
+  "version": "2.2",
+  "observer_runtime": "MOR Trader v1.23",
+  "entrypoint": "observer_runtime/app.py",
+  "seed_runtime_state": true,
+  "execution_mode": "PAPER_LOCKED",
+  "binance_credentials_forwarded": false,
+  "operator_status_file": "observer_runtime/storage/observer_status.json",
+  "ui_refresh_seconds": 3,
+  "graceful_stop": "SIGINT_then_kill_fallback",
+  "websockets": "16.0",
+  "db_schema_changes": false,
+  "backup": ".universe_lab_backup_observer_runtime_v22_20260820-030242"
+}

@@ -71,7 +71,7 @@ def _configured_command():
     for name in ("run_observer.py", "main.py", "observer.py", "trader.py", "app.py"):
         candidate = runtime / name
         if candidate.exists():
-            return [sys.executable, name]
+            return [sys.executable, "-u", name]
     return None
 
 
@@ -149,6 +149,8 @@ def _safe_observer_env():
     env["MOR_EXPORT_DOWNLOAD_PATH"] = "storage/MOR_latest_export.json"
     env["MOR_EXPORT_FULL_DOWNLOAD_PATH"] = "storage/MOR_export_full.json"
     env["MOR_OBSERVER_STATUS_FILE"] = "storage/observer_status.json"
+    env["MOR_GAP_MAX_MINUTES"] = "120"
+    env["PYTHONUNBUFFERED"] = "1"
     return env
 
 

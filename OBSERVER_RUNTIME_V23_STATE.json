@@ -1,0 +1,11 @@
+{
+  "version": "2.3",
+  "purpose": "prevent long startup gap replay from blocking live websocket",
+  "max_sync_gap_minutes": 120,
+  "python_unbuffered": true,
+  "behavior": {
+    "gap_lte_120m": "synchronous isolated SCR1 replay before live",
+    "gap_gt_120m": "skip heavy synchronous replay and resume live"
+  },
+  "backup": ".universe_lab_backup_observer_v23_20260820-031928"
+}

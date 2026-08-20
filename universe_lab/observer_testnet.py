@@ -777,3 +777,356 @@ def stop_api():
     _require()
     ok, message = _stop_and_restore_main("MANUAL_STOP")
     return jsonify({"ok": ok, "message": message, "testnet": _status()}), (200 if ok else 409)
+
+# ===== Observer Testnet Remote Relay v3.0 START =====
+RELAY_URL = os.getenv("OBSERVER_TESTNET_RELAY_URL", "").strip().rstrip("/")
+RELAY_SECRET = os.getenv("OBSERVER_TESTNET_RELAY_SECRET", "").strip()
+RELAY_AUTH_SKEW_SECONDS = max(
+    15,
+    int(os.getenv("OBSERVER_TESTNET_RELAY_AUTH_SKEW_SECONDS", "60")),
+)
+
+_local_status_v29 = _status
+_local_start_testnet_v29 = _start_testnet
+_local_flatten_v29 = _flatten
+_local_stop_restore_v29 = _stop_and_restore_main
+_local_creds_ready_v29 = _creds_ready
+_local_testnet_alive_v29 = _testnet_alive
+
+
+def _relay_enabled():
+    return bool(RELAY_URL and RELAY_SECRET)
+
+
+def _relay_digest(body):
+    return hashlib.sha256(body or b"").hexdigest()
+
+
+def _relay_signature(timestamp, method, path, body):
+    canonical = "\n".join(
+        [
+            str(timestamp),
+            method.upper(),
+            path,
+            _relay_digest(body),
+        ]
+    )
+    return hmac.new(
+        RELAY_SECRET.encode("utf-8"),
+        canonical.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def _relay_call(method, path, payload=None, timeout=20):
+    if not _relay_enabled():
+        raise RuntimeError(
+            "OBSERVER_TESTNET_RELAY_URL / OBSERVER_TESTNET_RELAY_SECRET missing"
+        )
+
+    body = b""
+    if payload is not None:
+        body = json.dumps(
+            payload,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+
+    timestamp = str(int(time.time()))
+    signature = _relay_signature(
+        timestamp,
+        method,
+        path,
+        body,
+    )
+    url = RELAY_URL + path
+    req = urllib.request.Request(
+        url,
+        data=(body if method.upper() != "GET" else None),
+        method=method.upper(),
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "UniverseLab-Control/3.0",
+            "X-Relay-Timestamp": timestamp,
+            "X-Relay-Signature": signature,
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            raw = response.read().decode("utf-8")
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(
+            "utf-8",
+            errors="replace",
+        )[:900]
+        raise RuntimeError(
+            f"Relay HTTP {exc.code}: {detail}"
+        ) from exc
+
+
+def _latest_relay_checkpoint_payload():
+    try:
+        event = _latest_checkpoint_event()
+        if not event:
+            return None
+        payload = json.loads(event.payload_json or "{}")
+        return payload if payload.get("runtime_gzip_b64") else None
+    except Exception:
+        return None
+
+
+def _relay_verify_inbound():
+    if not RELAY_SECRET:
+        return False, "relay secret missing"
+
+    timestamp = request.headers.get("X-Relay-Timestamp", "")
+    signature = request.headers.get("X-Relay-Signature", "")
+    try:
+        ts = int(timestamp)
+    except Exception:
+        return False, "invalid timestamp"
+
+    if abs(int(time.time()) - ts) > RELAY_AUTH_SKEW_SECONDS:
+        return False, "stale callback"
+
+    expected = _relay_signature(
+        timestamp,
+        request.method,
+        request.path,
+        request.get_data(cache=True) or b"",
+    )
+    if not hmac.compare_digest(expected, signature):
+        return False, "invalid callback signature"
+    return True, "ok"
+
+
+@bp.post("/relay/ingest")
+def relay_ingest_api():
+    ok, reason = _relay_verify_inbound()
+    if not ok:
+        return jsonify(
+            {"ok": False, "error": "unauthorized", "reason": reason}
+        ), 401
+
+    data = request.get_json(silent=True) or {}
+    kind = str(data.get("kind") or "")
+    key = str(data.get("idempotency_key") or "")[:40]
+    payload = data.get("payload")
+    if kind not in ("checkpoint", "trade") or not isinstance(payload, dict):
+        return jsonify({"ok": False, "error": "invalid payload"}), 400
+
+    event_type = CHECKPOINT_EVENT if kind == "checkpoint" else TRADE_EVENT
+    if not key:
+        key = hashlib.sha1(
+            json.dumps(
+                payload,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+
+    try:
+        with SessionLocal() as db:
+            existing = db.scalar(
+                select(Event.id)
+                .where(
+                    Event.event_type == event_type,
+                    Event.run_id == key,
+                )
+                .limit(1)
+            )
+            if existing:
+                return jsonify({"ok": True, "duplicate": True})
+
+            db.add(
+                Event(
+                    run_id=key,
+                    event_type=event_type,
+                    payload_json=json.dumps(
+                        payload,
+                        ensure_ascii=False,
+                    ),
+                )
+            )
+            db.commit()
+        return jsonify({"ok": True, "duplicate": False})
+    except Exception as exc:
+        return jsonify(
+            {
+                "ok": False,
+                "error": f"{type(exc).__name__}: {exc}"[:400],
+            }
+        ), 500
+
+
+def _creds_ready():
+    if _relay_enabled():
+        return True
+    return _local_creds_ready_v29()
+
+
+def _testnet_alive():
+    if not _relay_enabled():
+        return _local_testnet_alive_v29()
+    try:
+        data = _relay_call(
+            "GET",
+            "/v1/testnet/status",
+            timeout=10,
+        )
+        return bool(
+            (data.get("testnet") or {}).get("active")
+        )
+    except Exception:
+        return False
+
+
+def _status():
+    if not _relay_enabled():
+        local = _local_status_v29()
+        local["relay"] = False
+        local["relay_configured"] = False
+        return local
+
+    try:
+        data = _relay_call(
+            "GET",
+            "/v1/testnet/status",
+            timeout=12,
+        )
+        status = dict(data.get("testnet") or {})
+        status["relay"] = True
+        status["relay_configured"] = True
+        status["relay_url"] = RELAY_URL
+        return status
+    except Exception as exc:
+        return {
+            "ok": False,
+            "credentials_ready": True,
+            "active": False,
+            "profile": "OFF",
+            "relay": True,
+            "relay_configured": True,
+            "relay_url": RELAY_URL,
+            "reason": f"RELAY_ERROR: {type(exc).__name__}: {exc}"[:900],
+            "fills": 0,
+        }
+
+
+def _start_testnet(max_order, max_fills, max_minutes):
+    if not _relay_enabled():
+        return _local_start_testnet_v29(
+            max_order,
+            max_fills,
+            max_minutes,
+        )
+
+    try:
+        _switch_from_main_to_testnet()
+        checkpoint = _latest_relay_checkpoint_payload()
+        data = _relay_call(
+            "POST",
+            "/v1/testnet/start",
+            {
+                "max_order_usdt": float(max_order),
+                "max_fills": int(max_fills),
+                "max_minutes": int(max_minutes),
+                "checkpoint": checkpoint,
+            },
+            timeout=30,
+        )
+        if not data.get("ok"):
+            _restore_main_storage_after_testnet()
+            return False, str(data.get("message") or "Relay start blocked.")
+
+        _write_json(
+            oc.META_FILE,
+            {
+                "pid": None,
+                "started_at": datetime.now(timezone.utc).isoformat(),
+                "command": ["REMOTE", RELAY_URL],
+                "runtime_dir": str(oc._runtime_dir()),
+                "profile": "TESTNET_REMOTE",
+                "canary": {
+                    "max_order_usdt": float(max_order),
+                    "max_trades": int(max_fills),
+                    "max_minutes": int(max_minutes),
+                },
+                "restored_checkpoint": (
+                    checkpoint.get("state_id")
+                    if isinstance(checkpoint, dict)
+                    else None
+                ),
+            },
+        )
+        return True, str(
+            data.get("message")
+            or "Frankfurt Testnet relay started."
+        )
+    except Exception as exc:
+        _restore_main_storage_after_testnet()
+        return (
+            False,
+            f"Relay start failed: {type(exc).__name__}: {exc}",
+        )
+
+
+def _flatten(reason):
+    if not _relay_enabled():
+        return _local_flatten_v29(reason)
+
+    try:
+        data = _relay_call(
+            "POST",
+            "/v1/testnet/close",
+            {"reason": reason},
+            timeout=25,
+        )
+        return bool(data.get("ok")), str(
+            data.get("message") or "Relay close finished."
+        )
+    except Exception as exc:
+        return (
+            False,
+            f"Relay close failed: {type(exc).__name__}: {exc}",
+        )
+
+
+def _stop_and_restore_main(reason="STOP"):
+    if not _relay_enabled():
+        return _local_stop_restore_v29(reason)
+
+    try:
+        data = _relay_call(
+            "POST",
+            "/v1/testnet/stop",
+            {"reason": reason},
+            timeout=30,
+        )
+        relay_ok = bool(data.get("ok"))
+        relay_message = str(
+            data.get("message") or "Relay stopped."
+        )
+    except Exception as exc:
+        relay_ok = False
+        relay_message = (
+            f"Relay stop failed: {type(exc).__name__}: {exc}"
+        )
+
+    restored = _restore_main_storage_after_testnet()
+    _write_json(
+        oc.META_FILE,
+        {
+            "pid": None,
+            "started_at": None,
+            "command": oc._configured_command(),
+            "runtime_dir": str(oc._runtime_dir()),
+            "profile": "PAPER",
+            "canary": {},
+            "restored_checkpoint": restored,
+        },
+    )
+    return relay_ok, relay_message
+# ===== Observer Testnet Remote Relay v3.0 END =====

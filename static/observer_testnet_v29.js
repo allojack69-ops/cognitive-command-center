@@ -40,7 +40,7 @@
       <section class="tn29-card" id="observer-testnet-v29">
         <div class="tn29-head">
           <div>
-            <div class="tn29-kicker">FAKE MONEY · REAL EXCHANGE API</div>
+            <div class="tn29-kicker">FAKE MONEY · FRANKFURT EXECUTION RELAY</div>
             <h2>Binance Spot Testnet</h2>
             <p>Observer opens and closes real Testnet orders with virtual BTC/USDT. No real-money key is used.</p>
           </div>
@@ -71,7 +71,7 @@
 
           <div class="tn29-msg" id="tn29-msg">Checking Testnet connection…</div>
           <div class="tn29-last" id="tn29-last"></div>
-          <p class="tn29-note">Separate Render secrets required: BINANCE_TESTNET_API_KEY and BINANCE_TESTNET_API_SECRET. Testnet state/checkpoints and fills are backed up to the database.</p>
+          <p class="tn29-note">Binance Testnet keys stay only on the execution relay. Main Universe Lab talks to it over HMAC-signed HTTPS; checkpoints and fills return to the main database.</p>
         </div>
       </section>`;
   }
@@ -114,10 +114,10 @@
         badge.textContent = "API ERROR";
         badge.className = "tn29-badge error";
       } else if (t.active) {
-        badge.textContent = "RUNNING";
+        badge.textContent = t.relay ? "RELAY RUNNING" : "RUNNING";
         badge.className = "tn29-badge running";
       } else {
-        badge.textContent = "READY";
+        badge.textContent = t.relay ? "RELAY READY" : "READY";
         badge.className = "tn29-badge ready";
       }
 
@@ -134,7 +134,7 @@
 
       const msg = $("tn29-msg");
       if (!t.credentials_ready) {
-        msg.textContent = "Add BINANCE_TESTNET_API_KEY and BINANCE_TESTNET_API_SECRET in Render → Environment.";
+        msg.textContent = t.relay_configured ? "Relay is configured but its Testnet credentials are missing." : "Configure OBSERVER_TESTNET_RELAY_URL and OBSERVER_TESTNET_RELAY_SECRET on the main service.";
         msg.className = "tn29-msg error";
       } else if (!t.ok) {
         msg.textContent = `Testnet API error: ${t.reason || "unknown"}`;

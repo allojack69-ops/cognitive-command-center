@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: universe-observer-relay-fra
+    runtime: python
+    region: frankfurt
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn execution_relay.app:app --bind 0.0.0.0:$PORT --workers 1 --threads 6 --timeout 120
+    healthCheckPath: /health
+    envVars:
+      - key: RELAY_REGION
+        value: frankfurt
+      - key: RELAY_SHARED_SECRET
+        sync: false
+      - key: BINANCE_TESTNET_API_KEY
+        sync: false
+      - key: BINANCE_TESTNET_API_SECRET
+        sync: false
+      - key: CONTROL_CALLBACK_URL
+        value: https://cognitive-command-center.onrender.com/observer/testnet/relay/ingest

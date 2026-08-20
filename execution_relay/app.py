@@ -1071,3 +1071,74 @@ def _account():
 
 RELAY_VERSION = "3.2"
 # ===== end v3.2 =====
+
+# ===== Binance key acceptance probe v3.3 =====
+_original_account_v33 = _account
+
+def _v33_key_acceptance_probe():
+    if not TESTNET_API_KEY:
+        return {"code": None, "result": "API_KEY_MISSING"}
+    try:
+        req = urllib.request.Request(
+            TESTNET_BASE + "/api/v3/time",
+            headers={"User-Agent": "UniverseLab-Relay/3.3"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            server_time = int(json.loads(response.read().decode("utf-8"))["serverTime"])
+
+        params = {
+            "timestamp": server_time,
+            "recvWindow": 5000,
+            "signature": "abcdef",
+        }
+        url = TESTNET_BASE + "/api/v3/account?" + urllib.parse.urlencode(params)
+        req = urllib.request.Request(
+            url,
+            headers={
+                "X-MBX-APIKEY": TESTNET_API_KEY,
+                "User-Agent": "UniverseLab-Relay/3.3",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=15) as response:
+            return {"code": 0, "result": "UNEXPECTED_SUCCESS"}
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")[:500]
+        try:
+            data = json.loads(raw)
+            code = data.get("code")
+        except Exception:
+            code = None
+        if code == -1022:
+            result = "API_KEY_ACCEPTED_SECRET_OR_SIGNATURE_PROBLEM"
+        elif code == -2015:
+            result = "API_KEY_OR_IP_REJECTED_BEFORE_SIGNATURE"
+        else:
+            result = "OTHER_BINANCE_REJECTION"
+        return {"code": code, "result": result}
+    except Exception as exc:
+        return {
+            "code": None,
+            "result": "PROBE_TRANSPORT_ERROR",
+            "msg": f"{type(exc).__name__}: {exc}"[:300],
+        }
+
+def _account():
+    result = _original_account_v33()
+    result["relay_version"] = "3.3"
+    if result.get("ok"):
+        result["key_probe"] = "NOT_NEEDED"
+        return result
+
+    probe = _v33_key_acceptance_probe()
+    result["key_probe"] = probe.get("result")
+    result["key_probe_code"] = probe.get("code")
+    reason = str(result.get("reason") or "")
+    if probe.get("result"):
+        reason += " | KEY_PROBE=" + str(probe["result"])
+        if probe.get("code") is not None:
+            reason += "(" + str(probe["code"]) + ")"
+    result["reason"] = reason[:1200]
+    return result
+
+RELAY_VERSION = "3.3"
+# ===== end v3.3 =====

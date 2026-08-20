@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Observer Control Center{% endblock %}
+{% block content %}
+<section class="observer-console" id="observer-console" data-csrf="{{ csrf_token }}">
+  <div class="observer-console-head">
+    <div>
+      <div class="eyebrow">PRIVATE · OBSERVER CONTROL</div>
+      <h1>Observer Control Center</h1>
+      <p class="muted">Runtime control + live MOR state + decision pipeline + diagnostics.</p>
+    </div>
+    <div class="observer-runtime-badge" id="runtime-badge">CHECKING</div>
+  </div>
+
+  <div class="observer-actions">
+    <button type="button" class="observer-start" id="btn-start">▶ START</button>
+    <button type="button" class="observer-stop" id="btn-stop">■ STOP</button>
+    <button type="button" class="observer-restart" id="btn-restart">↻ RESTART</button>
+    <a class="button" href="{{ url_for('universe_observer.mor_home') }}">Snapshot / Import</a>
+  </div>
+
+  <div class="observer-message" id="observer-message" aria-live="polite"></div>
+
+  <section class="observer-kpis">
+    <div><span>STATE</span><b id="k-state">—</b><small id="k-market-time">—</small></div>
+    <div><span>PRICE</span><b id="k-price">—</b><small id="k-symbol">—</small></div>
+    <div><span>REGIME</span><b id="k-regime">—</b><small id="k-strategy">—</small></div>
+    <div><span>ACTION</span><b id="k-action">—</b><small id="k-confidence">—</small></div>
+    <div><span>HORIZON</span><b id="k-horizon">—</b><small>minutes / candles</small></div>
+    <div><span>RES1 RELIABILITY</span><b id="k-reliability">—</b><small id="k-error">—</small></div>
+  </section>
+
+  <div class="observer-layout">
+    <section class="card observer-chart-card">
+      <div class="cardhead">
+        <div><div class="eyebrow">MARKET TRAJECTORY</div><h2>Recent states</h2></div>
+        <div class="observer-mini-meta"><span id="chart-count">0 states</span></div>
+      </div>
+      <div class="observer-chart-wrap">
+        <svg id="price-chart" viewBox="0 0 900 280" role="img" aria-label="Recent Observer price trajectory">
+          <g id="chart-grid"></g>
+          <path id="chart-line" d="" fill="none" stroke="currentColor" stroke-width="3"></path>
+          <g id="chart-dots"></g>
+        </svg>
+        <div class="observer-chart-axis"><span id="chart-min">—</span><span id="chart-last">—</span><span id="chart-max">—</span></div>
+      </div>
+    </section>
+
+    <section class="card observer-runtime-card">
+      <div class="eyebrow">PROCESS</div><h2>Runtime</h2>
+      <dl class="observer-runtime-list">
+        <div><dt>Status</dt><dd id="p-status">—</dd></div>
+        <div><dt>PID</dt><dd id="p-pid">—</dd></div>
+        <div><dt>Uptime</dt><dd id="p-uptime">—</dd></div>
+        <div><dt>Source</dt><dd id="p-source">—</dd></div>
+        <div><dt>Version</dt><dd id="p-version">—</dd></div>
+      </dl>
+      <div class="observer-attach-note" id="observer-attach-note"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="cardhead"><div><div class="eyebrow">DECISION PATH</div><h2>Signal → execution</h2></div><div class="observer-mini-meta"><span id="execution-mode">—</span></div></div>
+    <div class="observer-pipeline" id="observer-pipeline"></div>
+    <div class="observer-blockers" id="observer-blockers"></div>
+  </section>
+
+  <div class="observer-layout">
+    <section class="card"><div class="eyebrow">TRADEABILITY</div><h2>Horizon surface</h2><div class="tradeability-bars" id="tradeability-bars"></div></section>
+    <section class="card"><div class="eyebrow">RUNTIME COUNTS</div><h2>Pending / learned structures</h2><div class="observer-count-grid" id="observer-count-grid"></div></section>
+  </div>
+
+  <section class="card">
+    <div class="cardhead"><div><div class="eyebrow">MODULE MATRIX</div><h2>Derived systems</h2></div><div class="observer-mini-meta"><span id="module-count">0 modules</span></div></div>
+    <div class="observer-module-grid" id="observer-module-grid"></div>
+  </section>
+
+  <section class="card">
+    <div class="cardhead"><div><div class="eyebrow">ENGINE LOG</div><h2>Latest output</h2></div><div class="observer-mini-meta"><span>auto-refresh 3s</span></div></div>
+    <pre class="observer-log" id="observer-log">No log output yet.</pre>
+  </section>
+</section>
+
+<script>
+(() => {
+  const root = document.getElementById("observer-console");
+  if (!root || root.dataset.ready === "1") return;
+  root.dataset.ready = "1";
+  const csrf = root.dataset.csrf;
+  const $ = (id) => document.getElementById(id);
+  let busy = false;
+  const fmtNum = (v, digits=2) => { const n=Number(v); return Number.isFinite(n) ? n.toLocaleString(undefined,{maximumFractionDigits:digits}) : "—"; };
+  const fmtPct01 = (v) => { const n=Number(v); return Number.isFinite(n) ? (n*100).toFixed(1)+"%" : "—"; };
+  const fmtPct = (v) => { const n=Number(v); return Number.isFinite(n) ? n.toFixed(3)+"%" : "—"; };
+  const uptime = (s) => { s=Number(s); if(!Number.isFinite(s)) return "—"; const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60); return `${h}h ${m}m ${sec}s`; };
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"})[c]);
+
+  function renderChart(series){
+    const line=$("chart-line"),dots=$("chart-dots"),grid=$("chart-grid");
+    if(!Array.isArray(series)||series.length<2){line.setAttribute("d","");dots.innerHTML="";grid.innerHTML="";$("chart-count").textContent=`${series?.length||0} states`;$("chart-min").textContent="—";$("chart-max").textContent="—";$("chart-last").textContent="—";return;}
+    const prices=series.map(x=>Number(x.price)).filter(Number.isFinite); if(prices.length<2)return;
+    const min=Math.min(...prices),max=Math.max(...prices),span=Math.max(max-min,.000001),w=900,h=280,padX=30,padY=24;
+    const x=i=>padX+i*((w-padX*2)/(series.length-1)); const y=p=>h-padY-((p-min)/span)*(h-padY*2);
+    let d=""; series.forEach((item,i)=>{const px=x(i),py=y(Number(item.price));d+=`${i?" L":"M"} ${px.toFixed(2)} ${py.toFixed(2)}`;}); line.setAttribute("d",d);
+    grid.innerHTML=[.25,.5,.75].map(r=>{const gy=(padY+(h-padY*2)*r).toFixed(1);return `<line x1="${padX}" y1="${gy}" x2="${w-padX}" y2="${gy}" class="observer-grid-line"/>`;}).join("");
+    dots.innerHTML=series.map((item,i)=>{const action=String(item.action||"HOLD").toUpperCase();const cls=action==="BUY"?"buy":action==="SELL"?"sell":"hold";return `<circle cx="${x(i).toFixed(2)}" cy="${y(Number(item.price)).toFixed(2)}" r="${i===series.length-1?5:2.5}" class="observer-dot ${cls}"><title>${esc(item.state_id)} · ${fmtNum(item.price,2)} · ${esc(action)}</title></circle>`;}).join("");
+    $("chart-count").textContent=`${series.length} states`; $("chart-min").textContent=`min ${fmtNum(min,2)}`; $("chart-max").textContent=`max ${fmtNum(max,2)}`; $("chart-last").textContent=`last ${fmtNum(prices[prices.length-1],2)}`;
+  }
+
+  function renderPipeline(items){$("observer-pipeline").innerHTML=(items||[]).map((x,i)=>`<div class="observer-pipe-node ${x.ok?"pass":"block"}"><span>${String(i+1).padStart(2,"0")}</span><b>${esc(x.name)}</b><strong>${esc(x.value)}</strong><small>${esc(x.detail)}</small></div>`).join("");}
+  function renderTradeability(rows){const max=Math.max(1,...(rows||[]).map(r=>Number(r.score)||0));$("tradeability-bars").innerHTML=(rows||[]).map(r=>{const score=Number(r.score)||0,width=Math.max(2,Math.min(100,(score/max)*100));return `<div class="tradeability-row"><div><b>H${esc(r.horizon)}</b><span>${fmtNum(score,3)}</span></div><div class="tradeability-track"><i style="width:${width}%"></i></div><small>p=${fmtPct01(r.probability)} · motion=${fmtPct(r.motion_budget_pct)}</small></div>`;}).join("")||`<div class="muted">No horizon data.</div>`;}
+  function renderCounts(counts){const rows=Object.entries(counts||{});$("observer-count-grid").innerHTML=rows.map(([k,v])=>`<div><b>${fmtNum(v,0)}</b><span>${esc(k.replaceAll("_"," "))}</span></div>`).join("")||`<div class="muted">No runtime counts.</div>`;}
+  function renderModules(mods){$("module-count").textContent=`${mods?.length||0} modules`;$("observer-module-grid").innerHTML=(mods||[]).map(m=>`<div class="observer-module ${m.ready?"ready":"wait"}"><div><b>${esc(m.name)}</b><span>${m.ready?"READY":"WAIT"}</span></div><strong>${esc(m.action||m.status||"—")}</strong><small>${m.score==null?esc(m.status):`score ${fmtNum(m.score,3)} · ${esc(m.status)}`}</small></div>`).join("");}
+
+  function render(data){
+    const p=data.process||{},o=data.observer||{},s=o.state||{},residual=o.residual||{},execution=o.execution||{};
+    $("runtime-badge").textContent=p.alive?"RUNNING":(p.engine_attached?"STOPPED":"ENGINE NOT ATTACHED"); $("runtime-badge").className="observer-runtime-badge "+(p.alive?"running":p.engine_attached?"stopped":"unattached");
+    $("btn-start").disabled=busy||p.alive||!p.engine_attached; $("btn-stop").disabled=busy||!p.alive; $("btn-restart").disabled=busy||!p.engine_attached;
+    $("k-state").textContent=s.state_id||"—"; $("k-market-time").textContent=s.market_time||"—"; $("k-price").textContent=fmtNum(s.price,2); $("k-symbol").textContent=`${o.symbol||"—"} · ${o.interval||"—"}`; $("k-regime").textContent=s.regime||"—"; $("k-strategy").textContent=s.strategy||"—"; $("k-action").textContent=s.action||"—"; $("k-confidence").textContent=`p_success ${fmtPct01(s.p_success)}`; $("k-horizon").textContent=s.horizon??"—"; $("k-reliability").textContent=fmtPct01(residual.reliability); $("k-error").textContent=`error ${fmtPct01(residual.total_error)} · n=${residual.comparisons??0}`;
+    $("p-status").textContent=p.alive?"RUNNING":"STOPPED"; $("p-pid").textContent=p.pid||"—"; $("p-uptime").textContent=uptime(p.uptime_sec); $("p-source").textContent=o.source||"—"; $("p-version").textContent=`${o.export_version||"—"} / trader ${o.trader_version||"—"}`; $("execution-mode").textContent=`${execution.mode||"—"} · score ${fmtNum(execution.score,3)}`;
+    $("observer-attach-note").innerHTML=!p.engine_attached?`<b>Engine not attached.</b><br>UI is reading the latest MOR snapshot. START activates automatically after the Observer runtime/entrypoint is deployed.`:`<b>Runtime attached.</b><br>${esc(p.runtime_dir)}<br>${esc(JSON.stringify(p.command))}`;
+    renderChart(o.series||[]); renderPipeline(o.pipeline||[]); renderTradeability(o.tradeability||[]); renderCounts(o.counts||{}); renderModules(o.modules||[]);
+    const blockers=execution.blockers||[]; $("observer-blockers").innerHTML=blockers.length?blockers.map(x=>`<span>${esc(x)}</span>`).join(""):`<span class="ok">No execution blockers reported.</span>`;
+    const logs=data.logs||[]; $("observer-log").textContent=logs.length?logs.join("\n"):"No engine log output yet.";
+  }
+
+  async function refresh(){try{const r=await fetch("{{ url_for('observer_control.status_api') }}",{cache:"no-store"});if(!r.ok)throw new Error(`status ${r.status}`);render(await r.json());}catch(err){$("observer-message").textContent="Status refresh failed: "+err.message;$("observer-message").className="observer-message error";}}
+  async function action(name){if(busy)return;busy=true;$("observer-message").textContent=`${name.toUpperCase()}…`;$("observer-message").className="observer-message";try{const r=await fetch(`/observer/api/${name}`,{method:"POST",headers:{"X-CSRF-Token":csrf,"Accept":"application/json"}});const data=await r.json();$("observer-message").textContent=data.message||(data.ok?"OK":"Failed");$("observer-message").className="observer-message "+(data.ok?"ok":"error");render(data);}catch(err){$("observer-message").textContent=err.message;$("observer-message").className="observer-message error";}finally{busy=false;await refresh();}}
+  $("btn-start").addEventListener("click",()=>action("start")); $("btn-stop").addEventListener("click",()=>action("stop")); $("btn-restart").addEventListener("click",()=>action("restart"));
+  render({{ initial|tojson }}); setInterval(refresh,3000); document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh();});
+})();
+</script>
+{% endblock %}

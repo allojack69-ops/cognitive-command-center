@@ -1,0 +1,25 @@
+{
+  "version": "2.1",
+  "routes": [
+    "/observer/control",
+    "/observer/api/status",
+    "/observer/api/start",
+    "/observer/api/stop",
+    "/observer/api/restart"
+  ],
+  "admin_only": true,
+  "process_control": true,
+  "engine_attach": {
+    "runtime_dir_env": "OBSERVER_RUNTIME_DIR",
+    "command_env": "OBSERVER_COMMAND_JSON",
+    "default_runtime_dir": "observer_runtime",
+    "autodetect_entrypoints": [
+      "run_observer.py",
+      "main.py",
+      "observer.py",
+      "trader.py"
+    ]
+  },
+  "db_schema_changes": false,
+  "backup": ".universe_lab_backup_observer_v21_20260820-023809"
+}

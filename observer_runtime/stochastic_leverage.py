@@ -1,11 +1,12 @@
-"""SL1 — Stochastic Leverage / Noise-to-Leverage research engine.
+"""SL1 v0.2 — Stochastic Leverage / Noise-to-Leverage research engine.
 
-Research-only. It evaluates whether a control policy reshapes the distribution
-of possible outcomes so that higher uncertainty can improve expected EFP while
-tail loss stays controlled.
-
-Important: a bounded-downside policy is only counterfactual until the execution
-layer actually enforces its protective stop.
+Changes vs v0.1:
+- Removes the HOLD -> BUY fallback.
+- Uses market drift consistently; SELL is applied only in the payoff layer.
+- Ignores p_success as directional evidence when the source action is HOLD/NONE.
+- Evaluates BUY and SELL symmetrically for live Observer states.
+- Separates "a harvestable region exists" from "current baseline is actionable".
+- Remains research-only. It never places orders.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ import json
 import math
 import random
 
-SL_VERSION = "SL1"
+SL_VERSION = "SL1.2"
 
 
 def _clamp(x, lo, hi):
@@ -96,12 +97,12 @@ class Config:
     stop_sigma_grid: Tuple[float, ...] = (0.50, 0.75, 1.00)
 
 
-def _simulate_paths(sigma_pct, drift_pct, cfg, seed_offset=0):
+def _simulate_paths(sigma_pct, market_drift_pct, cfg, seed_offset=0):
     rng = random.Random(cfg.seed + int(seed_offset))
     steps = max(2, int(cfg.path_steps))
     samples = max(100, int(cfg.samples))
     step_sigma = max(1e-9, float(sigma_pct)) / math.sqrt(steps)
-    step_drift = float(drift_pct) / steps
+    step_drift = float(market_drift_pct) / steps
     out = []
 
     for _ in range(samples):
@@ -122,13 +123,13 @@ def _simulate_paths(sigma_pct, drift_pct, cfg, seed_offset=0):
 
 
 def _payoff(path, policy, cfg):
-    d = policy.direction
-    e = _clamp(float(policy.exposure), 0.0, 1.0)
+    direction = policy.direction
+    exposure = _clamp(float(policy.exposure), 0.0, 1.0)
 
-    if d == 0 or e <= 0:
+    if direction == 0 or exposure <= 0:
         return 0.0, 0.0, False
 
-    directed = [d * float(x) for x in path]
+    directed = [direction * float(x) for x in path]
     gross = directed[-1]
     stopped = False
 
@@ -140,20 +141,29 @@ def _payoff(path, policy, cfg):
                 stopped = True
                 break
 
-    dd = _max_drawdown([e * x for x in directed])
-    payoff = e * gross - e * max(0.0, cfg.transaction_cost_pct)
+    dd = _max_drawdown([exposure * x for x in directed])
+    payoff = (
+        exposure * gross
+        - exposure * max(0.0, cfg.transaction_cost_pct)
+    )
     return payoff, dd, stopped
 
 
-def evaluate_policy(policy, sigma_pct, drift_pct, cfg, seed_offset=0):
-    paths = _simulate_paths(sigma_pct, drift_pct, cfg, seed_offset)
+def evaluate_policy(policy, sigma_pct, market_drift_pct, cfg, seed_offset=0):
+    paths = _simulate_paths(
+        sigma_pct,
+        market_drift_pct,
+        cfg,
+        seed_offset,
+    )
+
     payoffs = []
     dds = []
     stops = 0
 
     for path in paths:
-        p, dd, stopped = _payoff(path, policy, cfg)
-        payoffs.append(p)
+        payoff, dd, stopped = _payoff(path, policy, cfg)
+        payoffs.append(payoff)
         dds.append(dd)
         stops += int(stopped)
 
@@ -161,7 +171,10 @@ def evaluate_policy(policy, sigma_pct, drift_pct, cfg, seed_offset=0):
     upside = _mean([max(0.0, x) for x in payoffs])
     downside = _mean([max(0.0, -x) for x in payoffs])
     cvar = _cvar_loss(payoffs, cfg.alpha)
-    ruin = sum(x <= -cfg.catastrophic_loss_pct for x in payoffs) / len(payoffs)
+    ruin = (
+        sum(x <= -cfg.catastrophic_loss_pct for x in payoffs)
+        / len(payoffs)
+    )
     mean_dd = _mean(dds)
 
     efp = (
@@ -186,7 +199,7 @@ def evaluate_policy(policy, sigma_pct, drift_pct, cfg, seed_offset=0):
     return {
         "policy": asdict(policy),
         "sigma_pct": round(float(sigma_pct), 8),
-        "drift_pct": round(float(drift_pct), 8),
+        "market_drift_pct": round(float(market_drift_pct), 8),
         "mean_payoff_pct": round(mean_payoff, 8),
         "mean_upside_pct": round(upside, 8),
         "mean_downside_pct": round(downside, 8),
@@ -206,14 +219,14 @@ def evaluate_policy(policy, sigma_pct, drift_pct, cfg, seed_offset=0):
 def candidate_policies(direction, baseline_sigma_pct, cfg):
     direction = direction.upper()
     if direction not in ("BUY", "SELL"):
-        direction = "BUY"
+        raise ValueError("direction must be BUY or SELL")
 
     rows = [
         Policy(
             "A_VARIANCE_SUPPRESSION",
             "HOLD",
             0.0,
-            description="Control A: suppress exposure to noise.",
+            description="Control A: suppress exposure to uncertainty.",
         )
     ]
 
@@ -250,7 +263,7 @@ def candidate_policies(direction, baseline_sigma_pct, cfg):
                     ),
                     description=(
                         "Control C: bounded-downside counterfactual. "
-                        "Requires actual stop enforcement to become real."
+                        "Requires actual stop enforcement."
                     ),
                 )
             )
@@ -261,10 +274,8 @@ def candidate_policies(direction, baseline_sigma_pct, cfg):
 def _best(rows):
     feasible = [x for x in rows if x.get("feasible")]
     pool = feasible if feasible else list(rows)
-
     if not pool:
         return {}
-
     return max(
         pool,
         key=lambda x: (
@@ -275,25 +286,44 @@ def _best(rows):
     )
 
 
-def run_test(baseline_sigma_pct, drift_pct=0.0, direction="BUY", cfg=None):
+def _baseline_point(sweep):
+    if not sweep:
+        return {}
+    return min(
+        sweep,
+        key=lambda x: abs(float(x["sigma_multiplier"]) - 1.0),
+    )
+
+
+def run_test(
+    baseline_sigma_pct,
+    market_drift_pct=0.0,
+    direction="BUY",
+    cfg=None,
+):
     cfg = cfg or Config()
     baseline_sigma_pct = max(1e-6, float(baseline_sigma_pct))
     direction = direction.upper()
 
     if direction not in ("BUY", "SELL"):
-        direction = "BUY"
+        raise ValueError("direction must be BUY or SELL")
 
-    policies = candidate_policies(direction, baseline_sigma_pct, cfg)
+    policies = candidate_policies(
+        direction,
+        baseline_sigma_pct,
+        cfg,
+    )
+
     sweep = []
 
     for i, mult in enumerate(cfg.sigma_multipliers):
         sigma = baseline_sigma_pct * mult
 
-        results = [
+        rows = [
             evaluate_policy(
                 policy,
                 sigma,
-                drift_pct,
+                market_drift_pct,
                 cfg,
                 seed_offset=i * 10000,
             )
@@ -302,7 +332,8 @@ def run_test(baseline_sigma_pct, drift_pct=0.0, direction="BUY", cfg=None):
 
         control_a = next(
             (
-                x for x in results
+                x
+                for x in rows
                 if x["policy"]["name"] == "A_VARIANCE_SUPPRESSION"
             ),
             {},
@@ -310,14 +341,14 @@ def run_test(baseline_sigma_pct, drift_pct=0.0, direction="BUY", cfg=None):
 
         control_b = _best(
             [
-                x for x in results
+                x for x in rows
                 if x["policy"]["name"].startswith("B_LINEAR_")
             ]
         )
 
         control_c = _best(
             [
-                x for x in results
+                x for x in rows
                 if x["policy"]["name"].startswith(
                     "C_STOCHASTIC_LEVERAGE_"
                 )
@@ -330,7 +361,7 @@ def run_test(baseline_sigma_pct, drift_pct=0.0, direction="BUY", cfg=None):
             "control_a": control_a,
             "control_b": control_b,
             "control_c": control_c,
-            "best": _best(results),
+            "best": _best(rows),
         })
 
     intervals = []
@@ -347,7 +378,8 @@ def run_test(baseline_sigma_pct, drift_pct=0.0, direction="BUY", cfg=None):
             continue
 
         slope = (
-            float(r["efp_score"]) - float(l["efp_score"])
+            float(r["efp_score"])
+            - float(l["efp_score"])
         ) / dsigma
 
         controlled = (
@@ -384,13 +416,25 @@ def run_test(baseline_sigma_pct, drift_pct=0.0, direction="BUY", cfg=None):
         else None
     )
 
+    baseline = _baseline_point(sweep)
+    baseline_c = baseline.get("control_c") or {}
+
+    baseline_actionable = bool(
+        baseline_c.get("feasible")
+        and float(baseline_c.get("efp_score", 0.0)) > 0.0
+        and baseline_c.get("policy", {}).get("action")
+        in ("BUY", "SELL")
+    )
+
     return {
         "version": SL_VERSION,
         "kind": "NOISE_TO_LEVERAGE_TEST",
         "direction": direction,
         "baseline_sigma_pct": round(baseline_sigma_pct, 8),
-        "drift_pct": round(float(drift_pct), 8),
+        "market_drift_pct": round(float(market_drift_pct), 8),
         "stochastic_leverage_detected": bool(intervals),
+        "baseline_actionable": baseline_actionable,
+        "baseline_control_c": baseline_c,
         "leverage_intervals": intervals,
         "strongest_interval": strongest,
         "convexity_proxy": round(_mean(second_diff), 8),
@@ -412,7 +456,9 @@ def state_inputs(state):
     state = dict(state or {})
     sf = state.get("state_features") or {}
 
-    action = str(state.get("action") or "HOLD").upper()
+    source_action = str(
+        state.get("action") or "HOLD"
+    ).upper()
 
     candidates = [
         state.get("volatility_pct"),
@@ -432,56 +478,150 @@ def state_inputs(state):
     )
 
     trend = state.get("trend_pct")
-    trend = float(trend) if isinstance(trend, (int, float)) else 0.0
-
-    p_success = state.get("p_success")
-    p_success = (
-        float(p_success)
-        if isinstance(p_success, (int, float))
-        else 0.5
+    trend = (
+        float(trend)
+        if isinstance(trend, (int, float))
+        else 0.0
     )
 
-    if action == "SELL":
-        direction = "SELL"
-        signed_trend = -trend
-    else:
-        direction = "BUY"
-        signed_trend = trend
+    p_success = state.get("p_success")
+    p_success_valid = (
+        isinstance(p_success, (int, float))
+        and 0.0 < float(p_success) <= 1.0
+        and source_action in ("BUY", "SELL")
+    )
 
-    p_edge = _clamp((p_success - 0.5) * 2.0, -1.0, 1.0)
+    # Market drift stays in market coordinates.
+    market_drift = 0.20 * trend
 
-    # Deliberately conservative: geometry should create the advantage,
-    # not an optimistic drift assumption.
-    drift = 0.20 * signed_trend + 0.10 * p_edge * sigma
+    if p_success_valid:
+        p_edge = _clamp(
+            (float(p_success) - 0.5) * 2.0,
+            -1.0,
+            1.0,
+        )
+
+        if source_action == "BUY":
+            market_drift += 0.10 * p_edge * sigma
+        else:
+            market_drift -= 0.10 * p_edge * sigma
 
     return {
         "baseline_sigma_pct": max(0.01, sigma),
-        "drift_pct": drift,
-        "direction": direction,
-        "source_action": action,
-        "source_p_success": p_success,
+        "market_drift_pct": market_drift,
+        "source_action": source_action,
+        "source_p_success": (
+            float(p_success)
+            if isinstance(p_success, (int, float))
+            else None
+        ),
+        "p_success_used": bool(p_success_valid),
         "source_trend_pct": trend,
     }
 
 
+def _baseline_score(result):
+    c = result.get("baseline_control_c") or {}
+    if not c.get("feasible"):
+        return -1e99
+    return float(c.get("efp_score", -1e99))
+
+
 def evaluate_state(state, cfg=None):
     inputs = state_inputs(state)
-    out = run_test(
+
+    buy = run_test(
         inputs["baseline_sigma_pct"],
-        inputs["drift_pct"],
-        inputs["direction"],
+        inputs["market_drift_pct"],
+        "BUY",
         cfg,
     )
-    out["source"] = inputs
-    out["state_id"] = state.get("state_id")
-    return out
+
+    sell = run_test(
+        inputs["baseline_sigma_pct"],
+        inputs["market_drift_pct"],
+        "SELL",
+        cfg,
+    )
+
+    candidates = [buy, sell]
+    selected = max(candidates, key=_baseline_score)
+    selected_score = _baseline_score(selected)
+
+    if selected_score <= 0.0:
+        selected_direction = "HOLD"
+        current_actionable = False
+    else:
+        selected_direction = selected["direction"]
+        current_actionable = bool(
+            selected.get("baseline_actionable")
+        )
+
+    all_intervals = []
+    for result in candidates:
+        for interval in result["leverage_intervals"]:
+            item = dict(interval)
+            item["direction"] = result["direction"]
+            all_intervals.append(item)
+
+    strongest = (
+        max(
+            all_intervals,
+            key=lambda x: float(x["d_efp_d_sigma"]),
+        )
+        if all_intervals
+        else None
+    )
+
+    detected = bool(all_intervals)
+
+    # Convexity is reported for the currently selected directional research
+    # surface, even if baseline recommendation remains HOLD.
+    selected_convexity = selected.get("convexity_proxy", 0.0)
+
+    return {
+        "version": SL_VERSION,
+        "kind": "OBSERVER_STOCHASTIC_LEVERAGE",
+        "state_id": state.get("state_id"),
+        "source": inputs,
+        "selected_direction": selected_direction,
+        "current_actionable": current_actionable,
+        "baseline_selected_efp": (
+            None if selected_score <= -1e90 else round(selected_score, 8)
+        ),
+        "stochastic_leverage_detected": detected,
+        "leverage_intervals": all_intervals,
+        "strongest_interval": strongest,
+        "convexity_proxy": selected_convexity,
+        "interpretation": (
+            "CURRENT_BASELINE_STOCHASTIC_LEVERAGE"
+            if current_actionable
+            else (
+                "HARVESTABLE_NOISE_REGION_FOUND"
+                if detected
+                else "NO_CONTROLLED_POSITIVE_NOISE_SLOPE_FOUND"
+            )
+        ),
+        "directional_tests": {
+            "BUY": buy,
+            "SELL": sell,
+        },
+        "execution_status": "RESEARCH_ONLY_COUNTERFACTUAL",
+        "warning": (
+            "No execution authority. Protective-stop geometry is "
+            "counterfactual until enforced by the exchange layer."
+        ),
+    }
 
 
 def load_state(path):
     with open(path, "r", encoding="utf-8") as f:
         obj = json.load(f)
 
-    if isinstance(obj, dict) and isinstance(obj.get("current_state"), dict):
+    if (
+        isinstance(obj, dict)
+        and isinstance(obj.get("current_state"), dict)
+    ):
         return obj["current_state"]
 
     if not isinstance(obj, dict):
@@ -492,13 +632,17 @@ def load_state(path):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description="SL1 Noise-to-Leverage research test"
+        description="SL1 v0.2 Noise-to-Leverage research test"
     )
 
     parser.add_argument("--state-json")
     parser.add_argument("--sigma", type=float, default=0.25)
     parser.add_argument("--drift", type=float, default=0.0)
-    parser.add_argument("--direction", choices=("BUY", "SELL"), default="BUY")
+    parser.add_argument(
+        "--direction",
+        choices=("BUY", "SELL"),
+        default="BUY",
+    )
     parser.add_argument("--samples", type=int, default=500)
     parser.add_argument("--steps", type=int, default=15)
     parser.add_argument("--compact", action="store_true")

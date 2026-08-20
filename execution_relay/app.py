@@ -32,7 +32,7 @@ TESTNET_BASE = "https://testnet.binance.vision"
 TESTNET_KLINES = TESTNET_BASE + "/api/v3/klines"
 TESTNET_WS = "wss://stream.testnet.binance.vision/ws/btcusdt@kline_1m"
 
-RELAY_VERSION = "3.0"
+RELAY_VERSION = "3.1"
 RELAY_REGION = os.getenv("RELAY_REGION", "frankfurt")
 SHARED_SECRET = os.getenv("RELAY_SHARED_SECRET", "").strip()
 CALLBACK_URL = os.getenv("CONTROL_CALLBACK_URL", "").strip()
@@ -134,6 +134,12 @@ def _testnet_fills():
     ]
 
 
+def _secret_fingerprint(secret):
+    if not secret:
+        return "missing"
+    return hashlib.sha256(secret.encode("utf-8")).hexdigest()[:10]
+
+
 def _request_digest(body):
     return hashlib.sha256(body or b"").hexdigest()
 
@@ -157,6 +163,11 @@ def _signature(secret, timestamp, method, path, body):
 def _auth_ok():
     if not SHARED_SECRET:
         return False, "RELAY_SHARED_SECRET missing"
+
+    auth = request.headers.get("Authorization", "")
+    expected_bearer = "Bearer " + SHARED_SECRET
+    if hmac.compare_digest(auth, expected_bearer):
+        return True, "bearer"
 
     timestamp = request.headers.get("X-Relay-Timestamp", "")
     signature = request.headers.get("X-Relay-Signature", "")
@@ -416,7 +427,8 @@ def _callback(kind, payload, idempotency_key):
         headers={
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "UniverseLab-Relay/3.0",
+            "User-Agent": "UniverseLab-Relay/3.1",
+            "Authorization": "Bearer " + SHARED_SECRET,
             "X-Relay-Timestamp": timestamp,
             "X-Relay-Signature": signature,
         },
@@ -890,6 +902,7 @@ def health():
                 TESTNET_API_KEY and TESTNET_API_SECRET
             ),
             "relay_secret_ready": bool(SHARED_SECRET),
+            "auth_fingerprint": _secret_fingerprint(SHARED_SECRET),
             "callback_ready": bool(CALLBACK_URL),
             "observer_running": _alive(),
         }

@@ -847,7 +847,8 @@ def _relay_call(method, path, payload=None, timeout=20):
         headers={
             "Accept": "application/json",
             "Content-Type": "application/json",
-            "User-Agent": "UniverseLab-Control/3.0",
+            "User-Agent": "UniverseLab-Control/3.1",
+            "Authorization": "Bearer " + RELAY_SECRET,
             "X-Relay-Timestamp": timestamp,
             "X-Relay-Signature": signature,
         },
@@ -866,6 +867,43 @@ def _relay_call(method, path, payload=None, timeout=20):
         ) from exc
 
 
+def _relay_health_debug():
+    out = {
+        "local_fingerprint": (
+            hashlib.sha256(RELAY_SECRET.encode("utf-8")).hexdigest()[:10]
+            if RELAY_SECRET
+            else "missing"
+        ),
+        "remote_fingerprint": None,
+        "health_ok": False,
+        "health_reason": None,
+    }
+    if not RELAY_URL:
+        out["health_reason"] = "relay URL missing"
+        return out
+
+    try:
+        req = urllib.request.Request(
+            RELAY_URL + "/health",
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "UniverseLab-Control/3.1",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=12) as response:
+            data = json.loads(response.read().decode("utf-8"))
+        out["health_ok"] = bool(data.get("ok"))
+        out["remote_fingerprint"] = data.get("auth_fingerprint")
+        out["health_reason"] = (
+            (data.get("binance_testnet") or {}).get("reason")
+            if not data.get("ok")
+            else None
+        )
+    except Exception as exc:
+        out["health_reason"] = f"{type(exc).__name__}: {exc}"[:300]
+    return out
+
+
 def _latest_relay_checkpoint_payload():
     try:
         event = _latest_checkpoint_event()
@@ -880,6 +918,11 @@ def _latest_relay_checkpoint_payload():
 def _relay_verify_inbound():
     if not RELAY_SECRET:
         return False, "relay secret missing"
+
+    auth = request.headers.get("Authorization", "")
+    expected_bearer = "Bearer " + RELAY_SECRET
+    if hmac.compare_digest(auth, expected_bearer):
+        return True, "bearer"
 
     timestamp = request.headers.get("X-Relay-Timestamp", "")
     signature = request.headers.get("X-Relay-Signature", "")
@@ -1002,6 +1045,19 @@ def _status():
         status["relay_url"] = RELAY_URL
         return status
     except Exception as exc:
+        dbg = _relay_health_debug()
+        local_fp = dbg.get("local_fingerprint")
+        remote_fp = dbg.get("remote_fingerprint")
+        if remote_fp and local_fp != remote_fp:
+            diagnostic = (
+                f" SECRET_MISMATCH main={local_fp} relay={remote_fp}. "
+                "OBSERVER_TESTNET_RELAY_SECRET and RELAY_SHARED_SECRET are different."
+            )
+        elif remote_fp and local_fp == remote_fp:
+            diagnostic = " SECRET_MATCH. Bearer/HMAC auth should pass after both v3.1 deploys."
+        else:
+            diagnostic = f" RELAY_HEALTH={dbg.get('health_reason') or 'unavailable'}."
+
         return {
             "ok": False,
             "credentials_ready": True,
@@ -1010,7 +1066,11 @@ def _status():
             "relay": True,
             "relay_configured": True,
             "relay_url": RELAY_URL,
-            "reason": f"RELAY_ERROR: {type(exc).__name__}: {exc}"[:900],
+            "reason": (
+                f"RELAY_ERROR: {type(exc).__name__}: {exc}{diagnostic}"
+            )[:1200],
+            "auth_local_fingerprint": local_fp,
+            "auth_remote_fingerprint": remote_fp,
             "fills": 0,
         }
 

@@ -82,6 +82,7 @@ def load_state():
         "reported_trade_keys": [],
         "last_checkpoint_state": None,
         "baseline_btc": 0.0,
+        "baseline_usdt": None,
         "baseline_equity": 0.0,
         "baseline_fill_count": 0,
         "started_at": None,
@@ -432,6 +433,7 @@ def start_runtime(params):
         "active": True,
         "started_at": now_iso(),
         "baseline_btc": acct["btc"],
+        "baseline_usdt": acct["usdt"],
         "baseline_equity": acct["equity_usdt"],
         "baseline_fill_count": baseline_fill_count,
         "limits": limits,
@@ -560,27 +562,47 @@ def status_payload():
         acct = {"error": f"{type(exc).__name__}: {exc}"[:300]}
 
     current_btc = float(acct.get("btc", 0) or 0)
-    baseline_btc = float(
-        STATE.get("baseline_btc", current_btc) or 0
-    )
-    bot_btc = max(0.0, current_btc - baseline_btc)
-
-    pnl = None
-    baseline_eq = STATE.get("baseline_equity")
-    if (
-        baseline_eq is not None
-        and acct.get("equity_usdt") is not None
-    ):
-        pnl = (
-            float(acct["equity_usdt"])
-            - float(baseline_eq)
-        )
+    current_usdt = float(acct.get("usdt", 0) or 0)
+    current_price = float(acct.get("price", 0) or 0)
 
     fill_count = max(
         0,
         len(fills())
         - int(STATE.get("baseline_fill_count", 0) or 0),
     )
+
+    baseline_btc = float(
+        STATE.get("baseline_btc", current_btc) or 0
+    )
+    baseline_usdt_raw = STATE.get("baseline_usdt")
+
+    if baseline_usdt_raw is None and fill_count == 0:
+        STATE["baseline_btc"] = current_btc
+        STATE["baseline_usdt"] = current_usdt
+        STATE["baseline_equity"] = float(
+            acct.get("equity_usdt", current_usdt) or current_usdt
+        )
+        STATE["baseline_rebased_at"] = now_iso()
+        save_state()
+        baseline_btc = current_btc
+        baseline_usdt_raw = current_usdt
+
+    baseline_usdt = (
+        float(baseline_usdt_raw)
+        if baseline_usdt_raw is not None
+        else current_usdt
+    )
+
+    signed_btc_delta = current_btc - baseline_btc
+    bot_btc = max(0.0, signed_btc_delta)
+
+    pnl = (
+        (current_usdt - baseline_usdt)
+        + signed_btc_delta * current_price
+    )
+
+    if fill_count == 0 and abs(signed_btc_delta) < 1e-12:
+        pnl = 0.0
 
     return {
         "active": process_alive(),
@@ -600,6 +622,12 @@ def status_payload():
         ),
         "session_pnl_usdt": pnl,
         "fills": fill_count,
+        "accounting": {
+            "baseline_usdt": baseline_usdt,
+            "baseline_btc": baseline_btc,
+            "btc_delta": signed_btc_delta,
+            "method": "BOT_ATTRIBUTABLE_MARK_TO_MARKET_V1",
+        },
         "testnet_only": True,
         "runtime_status": live_snapshot,
         "runtime_log_tail": runtime_log_tail(100),

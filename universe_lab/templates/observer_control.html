@@ -64,6 +64,52 @@
     <div class="observer-blockers" id="observer-blockers"></div>
   </section>
 
+<!-- ===== Closed-Candle Cycle v2.5 START ===== -->
+<section class="card observer-cycle-card" id="closed-candle-cycle">
+  <div class="cardhead observer-cycle-head">
+    <div>
+      <div class="eyebrow">ADAPTIVE LOOP</div>
+      <h2>Closed-Candle Cycle</h2>
+      <p class="muted observer-cycle-sub">State → decision → outcome → memory</p>
+    </div>
+    <div class="observer-cycle-context">
+      <span id="cycle-state-ref">—</span>
+      <span id="cycle-phase-badge" class="cycle-phase-badge pending">WAITING</span>
+    </div>
+  </div>
+
+  <div class="cycle-compact" id="cycle-compact"></div>
+  <div class="cycle-loop-caption"><span>CLOSED CANDLE</span><i>→</i><span>NEW MEMORY M(t+1)</span><i>↺</i></div>
+
+  <button type="button" class="cycle-expand-button" id="cycle-toggle" aria-expanded="false" aria-controls="cycle-expanded">
+    <span>Expand full cycle</span><b aria-hidden="true">⌄</b>
+  </button>
+
+  <div class="cycle-expanded" id="cycle-expanded" hidden>
+    <div class="cycle-group">
+      <div class="cycle-group-head"><span>01</span><div><b>State formation</b><small>Immutable market fact → operational state</small></div></div>
+      <div class="cycle-step-list" id="cycle-group-state"></div>
+    </div>
+    <div class="cycle-group">
+      <div class="cycle-group-head"><span>02</span><div><b>Hypothesis engine</b><small>Candidate action → probability → horizon</small></div></div>
+      <div class="cycle-step-list" id="cycle-group-hypothesis"></div>
+    </div>
+    <div class="cycle-group">
+      <div class="cycle-group-head"><span>03</span><div><b>Validation stack</b><small>Economics + geometry + arbitration + execution gate</small></div></div>
+      <div class="cycle-step-list" id="cycle-group-validation"></div>
+    </div>
+    <div class="cycle-group">
+      <div class="cycle-group-head"><span>04</span><div><b>Decision & learning</b><small>Freeze → future → loss → memory update</small></div></div>
+      <div class="cycle-step-list" id="cycle-group-learning"></div>
+    </div>
+    <div class="cycle-equation">
+      <span>Z<sub>t</sub></span><i>→</i><span>Φ̂<sub>t:t+H</sub></span><i>→</i><span>u<sub>t</sub></span><i>→</i>
+      <span>Y<sub>t+H</sub></span><i>→</i><span>L<sub>t</sub></span><i>→</i><span>M<sub>t+1</sub></span>
+    </div>
+  </div>
+</section>
+<!-- ===== Closed-Candle Cycle v2.5 END ===== -->
+
   <div class="observer-layout">
     <section class="card"><div class="eyebrow">TRADEABILITY</div><h2>Horizon surface</h2><div class="tradeability-bars" id="tradeability-bars"></div></section>
     <section class="card"><div class="eyebrow">RUNTIME COUNTS</div><h2>Pending / learned structures</h2><div class="observer-count-grid" id="observer-count-grid"></div></section>
@@ -111,14 +157,96 @@
   function renderCounts(counts){const rows=Object.entries(counts||{});$("observer-count-grid").innerHTML=rows.map(([k,v])=>`<div><b>${fmtNum(v,0)}</b><span>${esc(k.replaceAll("_"," "))}</span></div>`).join("")||`<div class="muted">No runtime counts.</div>`;}
   function renderModules(mods){$("module-count").textContent=`${mods?.length||0} modules`;$("observer-module-grid").innerHTML=(mods||[]).map(m=>`<div class="observer-module ${m.ready?"ready":"wait"}"><div><b>${esc(m.name)}</b><span>${m.ready?"READY":"WAIT"}</span></div><strong>${esc(m.action||m.status||"—")}</strong><small>${m.score==null?esc(m.status):`score ${fmtNum(m.score,3)} · ${esc(m.status)}`}</small></div>`).join("");}
 
-  function render(data){
+  function cycleModuleMap(modules) {
+  const out = {};
+  (modules || []).forEach(m => { if (m && m.name) out[m.name] = m; });
+  return out;
+}
+
+function cycleStep(name, value, detail, status) {
+  const allowed = ["done","active","pending","blocked","warn"];
+  return {name, value: value ?? "—", detail: detail ?? "", status: allowed.includes(status) ? status : "pending"};
+}
+
+function renderCycle(o, p) {
+  const s=o.state||{}, execution=o.execution||{}, counts=o.counts||{}, residual=o.residual||{};
+  const modules=cycleModuleMap(o.modules||[]), pipeline=o.pipeline||[], blockers=execution.blockers||[];
+  const pendingPredictions=Number(counts.pending_predictions||0), residualN=Number(residual.comparisons||0);
+  const stateReady=Boolean(s.state_id), hypothesisReady=Boolean(s.strategy||s.action), validationReady=pipeline.length>=4;
+  const decisionBlocked=blockers.length>0, freezeReady=stateReady&&s.horizon!=null&&s.p_success!=null;
+  const pipe={}; pipeline.forEach(x=>{if(x&&x.name)pipe[x.name]=x;});
+  const gsr=modules.GSR1||{}, cge=modules.CGE1||{}, aal=modules.AAL1||{}, erl=modules.ERL1||{}, eh=o.eh1||{};
+
+  const compact=[
+    {name:"Closed Candle",value:stateReady?(s.state_id||"DONE"):"WAIT",status:stateReady?"done":"pending",detail:stateReady?"immutable fact accepted":"waiting for closed candle"},
+    {name:"State",value:stateReady?(s.regime||"FORMED"):"WAIT",status:stateReady?"done":"pending",detail:stateReady?`${s.state_id||"—"} · ${fmtNum(s.price,2)}`:"not formed"},
+    {name:"Hypotheses",value:hypothesisReady?(s.action||"HOLD"):"WAIT",status:hypothesisReady?"done":"pending",detail:s.strategy||"no candidate yet"},
+    {name:"Validation",value:validationReady?(decisionBlocked?"CONFLICT":"PASSED"):"WAIT",status:validationReady?(decisionBlocked?"warn":"done"):"pending",detail:decisionBlocked?`${blockers.length} blocker${blockers.length===1?"":"s"}`:"gates evaluated"},
+    {name:"Decision",value:validationReady?(decisionBlocked?"BLOCK":(execution.action||s.action||"ALLOW")):"WAIT",status:validationReady?(decisionBlocked?"blocked":"done"):"pending",detail:`${execution.mode||"—"} · score ${fmtNum(execution.score,3)}`},
+    {name:"Freeze",value:freezeReady?`H${s.horizon}`:"WAIT",status:freezeReady?"done":"pending",detail:freezeReady?`prediction frozen at ${s.state_id}`:"prediction not frozen"},
+    {name:"Outcome",value:pendingPredictions>0?"WAITING":(freezeReady?"RESOLVED":"WAIT"),status:pendingPredictions>0?"active":(freezeReady?"done":"pending"),detail:pendingPredictions>0?`${pendingPredictions} pending prediction${pendingPredictions===1?"":"s"}`:"no pending prediction"},
+    {name:"Memory",value:residualN>0?"UPDATING":"PENDING",status:residualN>0?"active":"pending",detail:residualN>0?`${residualN} resolved comparison${residualN===1?"":"s"}`:"waiting for resolved future"}
+  ];
+
+  $("cycle-compact").innerHTML=compact.map((x,i)=>`<div class="cycle-node ${x.status}"><span class="cycle-node-index">${String(i+1).padStart(2,"0")}</span><div class="cycle-node-dot"></div><b>${esc(x.name)}</b><strong>${esc(x.value)}</strong><small>${esc(x.detail)}</small></div>`).join("");
+  $("cycle-state-ref").textContent=`${s.state_id||"—"} · ${o.symbol||"—"} · ${o.interval||"—"}`;
+  const phase=compact.find(x=>x.status==="active")||compact.find(x=>x.status==="blocked")||compact.find(x=>x.status==="warn")||compact.find(x=>x.status==="pending");
+  const badge=$("cycle-phase-badge"); badge.textContent=phase?`${phase.name.toUpperCase()} · ${phase.value}`:"CYCLE COMPLETE"; badge.className=`cycle-phase-badge ${phase?phase.status:"done"}`;
+
+  const stateSteps=[
+    cycleStep("Closed candle",stateReady?s.state_id:"WAIT",s.market_time||"Waiting for immutable kline close",stateReady?"done":"pending"),
+    cycleStep("Market state",stateReady?`${fmtNum(s.price,2)} · trend ${fmtPct(s.trend_pct)}`:"WAIT",`volatility ${fmtPct(s.volatility_pct)}`,stateReady?"done":"pending"),
+    cycleStep("Regime",s.regime||"WAIT",stateReady?"State classified":"Classification pending",stateReady?"done":"pending")
+  ];
+  const horizonDetail=eh.selected_horizon?`EH1 ${eh.selected_action||"—"}@H${eh.selected_horizon}`:`current H${s.horizon??"—"}`;
+  const hypothesisSteps=[
+    cycleStep("Strategy hypotheses",s.action||"WAIT",s.strategy||"No selected strategy",hypothesisReady?"done":"pending"),
+    cycleStep("Historical probability",s.p_success==null?"WAIT":fmtPct01(s.p_success),"conditioned on strategy / state memory",s.p_success==null?"pending":"done"),
+    cycleStep("Horizon selection",s.horizon==null?"WAIT":`H${s.horizon}`,horizonDetail,s.horizon==null?"pending":"done")
+  ];
+
+  const trade=pipe.Tradeability||{}, edge=pipe.Edge||{}, geo=pipe.Geometry||{}, execPipe=pipe.Execution||{};
+  const validationSteps=[
+    cycleStep("Tradeability",trade.value||"WAIT",trade.detail||"motion budget vs execution cost",trade.value==="PASS"?"done":(trade.value?"blocked":"pending")),
+    cycleStep("Validated economic edge",edge.value||"WAIT",edge.detail||"positive executable edge required",edge.value==="VALID"?"done":(edge.value?"blocked":"pending")),
+    cycleStep("Geometry",geo.value||"WAIT",geo.detail||"multi-scale geometry",geo.ok?"done":(geo.value&&geo.value!=="NO DATA"?"warn":"pending")),
+    cycleStep("GSR1",gsr.action||gsr.status||"WAIT",gsr.status||"continuation / reversal gate",gsr.ready?(String(gsr.status||"").toUpperCase().includes("MIXED")?"warn":"done"):"pending"),
+    cycleStep("EH1",eh.selected_action?`${eh.selected_action}@H${eh.selected_horizon??"—"}`:(modules.EH1?.action||"WAIT"),eh.status||modules.EH1?.status||"execution horizon arbitration",(eh.selected_action||modules.EH1?.ready)?(String(eh.status||"").toUpperCase().includes("OBSERVE")?"warn":"done"):"pending"),
+    cycleStep("CGE1",cge.action||cge.status||"WAIT",cge.status||"conditional geometry edge",cge.ready?"done":"pending"),
+    cycleStep("AAL1",aal.action||aal.status||"WAIT",aal.status||"strategy / geometry arbitration",aal.ready?(String(aal.status||"").includes("CONFLICT")?"warn":"done"):"pending"),
+    cycleStep("ERL1",execPipe.value||erl.action||"WAIT",blockers.length?blockers.join(" · "):(erl.status||"execution readiness"),validationReady?(decisionBlocked?"blocked":"done"):"pending")
+  ];
+
+  const matrices=`GOL2 ${fmtNum(counts.gol2_cells,0)} · TEG1 ${fmtNum(counts.teg1_cells,0)} · TOM1 ${fmtNum(counts.tom1_cells,0)}`;
+  const learningSteps=[
+    cycleStep("Paper decision",decisionBlocked?"BLOCK":(execution.action||s.action||"HOLD"),`${execution.mode||"PAPER"} · score ${fmtNum(execution.score,3)}`,validationReady?(decisionBlocked?"blocked":"done"):"pending"),
+    cycleStep("Freeze prediction",freezeReady?`${s.state_id} @ H${s.horizon}`:"WAIT",freezeReady?`p=${fmtPct01(s.p_success)} · immutable prediction record`:"waiting for decision record",freezeReady?"done":"pending"),
+    cycleStep("Wait for future",pendingPredictions>0?`${pendingPredictions} PENDING`:"CLEAR","Observer does not rewrite the frozen prediction",pendingPredictions>0?"active":(freezeReady?"done":"pending")),
+    cycleStep("Actual outcome",pendingPredictions>0?"PARTIAL / WAIT":(freezeReady?"RESOLVED":"WAIT"),"realized future at H5 / H15 / H30 / H60",pendingPredictions>0?"active":(freezeReady?"done":"pending")),
+    cycleStep("Brier + net return + regret",residualN>0?`${residualN} comparison${residualN===1?"":"s"}`:"WARMUP",residualN>0?`reliability ${fmtPct01(residual.reliability)} · error ${fmtPct01(residual.total_error)}`:"no resolved comparison yet",residualN>0?"done":"pending"),
+    cycleStep("Update matrices",matrices,"outcome facts update learned transition / geometry matrices",residualN>0?"done":"pending"),
+    cycleStep("New memory M(t+1)",residualN>0?"MEMORY ADVANCED":"PENDING",residualN>0?"next state conditions on updated memory":"future must resolve before this branch updates",residualN>0?"active":"pending")
+  ];
+
+  function draw(id,rows){$(id).innerHTML=rows.map((x,i)=>`<div class="cycle-step ${x.status}"><span class="cycle-step-number">${String(i+1).padStart(2,"0")}</span><div class="cycle-step-body"><b>${esc(x.name)}</b><strong>${esc(x.value)}</strong><small>${esc(x.detail)}</small></div><span class="cycle-step-status">${x.status.toUpperCase()}</span></div>`).join("");}
+  draw("cycle-group-state",stateSteps); draw("cycle-group-hypothesis",hypothesisSteps); draw("cycle-group-validation",validationSteps); draw("cycle-group-learning",learningSteps);
+}
+
+function render(data){
     const p=data.process||{},o=data.observer||{},s=o.state||{},residual=o.residual||{},execution=o.execution||{};
     $("runtime-badge").textContent=p.alive?"RUNNING":(p.engine_attached?"STOPPED":"ENGINE NOT ATTACHED"); $("runtime-badge").className="observer-runtime-badge "+(p.alive?"running":p.engine_attached?"stopped":"unattached");
     $("btn-start").disabled=busy||p.alive||!p.engine_attached; $("btn-stop").disabled=busy||!p.alive; $("btn-restart").disabled=busy||!p.engine_attached;
-    $("k-state").textContent=s.state_id||"—"; $("k-market-time").textContent=s.market_time||"—"; $("k-price").textContent=fmtNum(s.price,2); $("k-symbol").textContent=`${o.symbol||"—"} · ${o.interval||"—"}`; $("k-regime").textContent=s.regime||"—"; $("k-strategy").textContent=s.strategy||"—"; $("k-action").textContent=s.action||"—"; $("k-confidence").textContent=`p_success ${fmtPct01(s.p_success)}`; $("k-horizon").textContent=s.horizon??"—"; $("k-reliability").textContent=fmtPct01(residual.reliability); $("k-error").textContent=`error ${fmtPct01(residual.total_error)} · n=${residual.comparisons??0}`;
+    $("k-state").textContent=s.state_id||"—"; $("k-market-time").textContent=s.market_time||"—"; $("k-price").textContent=fmtNum(s.price,2); $("k-symbol").textContent=`${o.symbol||"—"} · ${o.interval||"—"}`; $("k-regime").textContent=s.regime||"—"; $("k-strategy").textContent=s.strategy||"—"; $("k-action").textContent=s.action||"—"; $("k-confidence").textContent=`p_success ${fmtPct01(s.p_success)}`; $("k-horizon").textContent=s.horizon??"—"; const residualN=Number(residual.comparisons||0);
+    if(residualN<=0){
+      $("k-reliability").textContent="WARMUP";
+      $("k-error").textContent="no resolved comparisons yet";
+    }else{
+      $("k-reliability").textContent=fmtPct01(residual.reliability);
+      $("k-error").textContent=`error ${fmtPct01(residual.total_error)} · n=${residualN}`;
+    }
     $("p-status").textContent=p.alive?"RUNNING":"STOPPED"; $("p-pid").textContent=p.pid||"—"; $("p-uptime").textContent=uptime(p.uptime_sec); $("p-source").textContent=o.source||"—"; $("p-version").textContent=`${o.export_version||"—"} / trader ${o.trader_version||"—"}`; $("execution-mode").textContent=`${execution.mode||"—"} · score ${fmtNum(execution.score,3)}`;
     $("observer-attach-note").innerHTML=!p.engine_attached?`<b>Engine not attached.</b><br>UI is reading the latest MOR snapshot. START activates automatically after the Observer runtime/entrypoint is deployed.`:`<b>Runtime attached.</b><br>${esc(p.runtime_dir)}<br>${esc(JSON.stringify(p.command))}`;
-    renderChart(o.series||[]); renderPipeline(o.pipeline||[]); renderTradeability(o.tradeability||[]); renderCounts(o.counts||{}); renderModules(o.modules||[]);
+    renderChart(o.series||[]); renderPipeline(o.pipeline||[]); renderTradeability(o.tradeability||[]); renderCounts(o.counts||{}); renderModules(o.modules||[]); renderCycle(o,p);
     const blockers=execution.blockers||[]; $("observer-blockers").innerHTML=blockers.length?blockers.map(x=>`<span>${esc(x)}</span>`).join(""):`<span class="ok">No execution blockers reported.</span>`;
     const logs=data.logs||[]; $("observer-log").textContent=logs.length?logs.join("\n"):"No engine log output yet.";
   }
@@ -126,7 +254,17 @@
   async function refresh(){try{const r=await fetch("{{ url_for('observer_control.status_api') }}",{cache:"no-store"});if(!r.ok)throw new Error(`status ${r.status}`);render(await r.json());}catch(err){$("observer-message").textContent="Status refresh failed: "+err.message;$("observer-message").className="observer-message error";}}
   async function action(name){if(busy)return;busy=true;$("observer-message").textContent=`${name.toUpperCase()}…`;$("observer-message").className="observer-message";try{const r=await fetch(`/observer/api/${name}`,{method:"POST",headers:{"X-CSRF-Token":csrf,"Accept":"application/json"}});const data=await r.json();$("observer-message").textContent=data.message||(data.ok?"OK":"Failed");$("observer-message").className="observer-message "+(data.ok?"ok":"error");render(data);}catch(err){$("observer-message").textContent=err.message;$("observer-message").className="observer-message error";}finally{busy=false;await refresh();}}
   $("btn-start").addEventListener("click",()=>action("start")); $("btn-stop").addEventListener("click",()=>action("stop")); $("btn-restart").addEventListener("click",()=>action("restart"));
-  render({{ initial|tojson }}); setInterval(refresh,3000); document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh();});
+  const cycleToggle=$("cycle-toggle");
+if(cycleToggle){
+  cycleToggle.addEventListener("click",()=>{
+    const expanded=$("cycle-expanded"),open=cycleToggle.getAttribute("aria-expanded")==="true";
+    cycleToggle.setAttribute("aria-expanded",String(!open)); expanded.hidden=open;
+    cycleToggle.querySelector("span").textContent=open?"Expand full cycle":"Collapse full cycle";
+    cycleToggle.querySelector("b").textContent=open?"⌄":"⌃";
+  });
+}
+
+render({{ initial|tojson }}); setInterval(refresh,3000); document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh();});
 })();
 </script>
 {% endblock %}

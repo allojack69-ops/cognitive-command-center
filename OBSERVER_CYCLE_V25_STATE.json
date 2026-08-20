@@ -1,0 +1,11 @@
+{
+  "version": "2.5",
+  "feature": "Closed-Candle Cycle hybrid",
+  "compact_nodes": 8,
+  "expanded_steps": 21,
+  "refresh_seconds": 3,
+  "db_schema_changes": false,
+  "observer_restart_required": false,
+  "res1_warmup_fix": true,
+  "backup": ".universe_lab_backup_observer_cycle_v25_20260820-034401"
+}

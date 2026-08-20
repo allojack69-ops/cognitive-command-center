@@ -991,3 +991,83 @@ def stop():
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "10000"))
     app.run(host="0.0.0.0", port=port)
+
+# ===== Binance credential diagnostics v3.2 =====
+_original_account_v32 = _account
+
+def _v32_key_fp(value):
+    if not value:
+        return "missing"
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()[:10]
+
+def _v32_probe_account(api_key, api_secret):
+    if not api_key or not api_secret:
+        return {"ok": False, "reason": "missing credentials"}
+    try:
+        req = urllib.request.Request(
+            TESTNET_BASE + "/api/v3/time",
+            headers={"User-Agent": "UniverseLab-Relay/3.2"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            server_time = int(json.loads(response.read().decode("utf-8"))["serverTime"])
+
+        params = {"timestamp": server_time, "recvWindow": 5000}
+        query = urllib.parse.urlencode(params)
+        sig = hmac.new(
+            api_secret.encode("utf-8"),
+            query.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+        url = TESTNET_BASE + "/api/v3/account?" + query + "&signature=" + sig
+        req = urllib.request.Request(
+            url,
+            headers={
+                "X-MBX-APIKEY": api_key,
+                "User-Agent": "UniverseLab-Relay/3.2",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=15) as response:
+            raw = response.read().decode("utf-8")
+            return {"ok": True, "data": json.loads(raw) if raw else {}}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:700]
+        return {"ok": False, "reason": f"HTTP {exc.code}: {detail}"}
+    except Exception as exc:
+        return {"ok": False, "reason": f"{type(exc).__name__}: {exc}"[:700]}
+
+def _account():
+    result = _original_account_v32()
+    result["api_key_fingerprint"] = _v32_key_fp(TESTNET_API_KEY)
+    result["api_key_length"] = len(TESTNET_API_KEY or "")
+    result["api_secret_length"] = len(TESTNET_API_SECRET or "")
+    result["relay_version"] = "3.2"
+
+    if result.get("ok"):
+        result["credential_diagnostic"] = "BINANCE_TESTNET_AUTH_OK"
+        return result
+
+    reason = str(result.get("reason") or "")
+    if "-2015" not in reason:
+        return result
+
+    swapped = _v32_probe_account(TESTNET_API_SECRET, TESTNET_API_KEY)
+    if swapped.get("ok"):
+        result["credentials_swapped"] = True
+        result["reason"] = (
+            "BINANCE_KEYS_SWAPPED: Render has API Key and Secret reversed. "
+            "Swap BINANCE_TESTNET_API_KEY and BINANCE_TESTNET_API_SECRET."
+        )
+        return result
+
+    result["credentials_swapped"] = False
+    result["reason"] = (
+        reason
+        + f" | relay_key_fp={result['api_key_fingerprint']}"
+        + f" key_len={result['api_key_length']}"
+        + f" secret_len={result['api_secret_length']}"
+        + " | Binance rejected the API key itself or an IP restriction."
+    )
+    return result
+
+RELAY_VERSION = "3.2"
+# ===== end v3.2 =====

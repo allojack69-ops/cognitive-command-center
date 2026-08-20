@@ -1,0 +1,10 @@
+{
+  "version": "2.8",
+  "fixes": [
+    "PAPER cannot fill while ERL1 strict readiness is BLOCK",
+    "counterfactual prediction freezing remains independent",
+    "explicit BLOCKED_ERL1_PAPER execution events",
+    "EH1 best horizon is distinguished from prediction horizon"
+  ],
+  "backup": ".universe_lab_backup_observer_v28_20260820-042235"
+}

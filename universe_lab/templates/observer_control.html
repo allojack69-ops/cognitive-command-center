@@ -164,7 +164,7 @@
   <div class="cone-live-readout">
     <div><span>STATE</span><b id="cone-read-state">—</b></div>
     <div><span>STRATEGY</span><b id="cone-read-strategy">—</b></div>
-    <div><span>BEST HORIZON</span><b id="cone-read-horizon">—</b></div>
+    <div><span>EH1 BEST</span><b id="cone-read-horizon">—</b></div>
     <div><span>DECISION</span><b id="cone-read-decision">—</b></div>
   </div>
 
@@ -378,7 +378,7 @@ function renderCone(o, p) {
     coneInspector(`${currentState} · ${s.action||"HOLD"} → ${decision}`,blocked?"LIVE CONFLICT":"LIVE PATH",
       blocked?`Execution is blocked by ${blockers.length} gate${blockers.length===1?"":"s"}. Tap a signal vector to inspect the disagreement.`:
       "The current path reaches the execution gate without hard blockers.",
-      [{label:"p_success",value:fmtPct01(s.p_success)},{label:"horizon",value:s.horizon==null?"—":`H${s.horizon}`},{label:"ERL1",value:`${fmtNum(execution.score,3)} · ${execution.mode||"—"}`},{label:"pending",value:String(pending)}]);
+      [{label:"p_success",value:fmtPct01(s.p_success)},{label:"prediction H",value:s.horizon==null?"—":`H${s.horizon}`},{label:"ERL1",value:`${fmtNum(execution.score,3)} · ${execution.mode||"—"}`},{label:"pending",value:String(pending)}]);
   }
 
   coneBindInteractive(".cone-horizon",function(){

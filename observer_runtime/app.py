@@ -25212,111 +25212,115 @@ async def main():
                                 prediction_horizon,
                         )
 
-                        if (
-                            (
-                                tradeability_decision["allowed"]
-                                and edge_decision["allowed"]
+                        economic_ready = bool(
+                            tradeability_decision["allowed"]
+                            and edge_decision["allowed"]
+                        )
+                        strict_exec_ready = bool(
+                            latest_execution_readiness.get(
+                                "strict_ready",
+                                False,
                             )
-                            or (
-                                EXECUTION_MODE == "TESTNET"
-                                and TESTNET_RELAX_GATES
-                                and latest_execution_readiness.get("testnet_ready", False)
+                        )
+                        testnet_exec_ready = bool(
+                            latest_execution_readiness.get(
+                                "testnet_ready",
+                                False,
                             )
-                        ):
-                            # Risk Governor remains the final independent hard layer.
+                        )
+
+                        if EXECUTION_MODE == "TESTNET":
+                            mode_exec_ready = (
+                                testnet_exec_ready
+                                if TESTNET_RELAX_GATES
+                                else strict_exec_ready
+                            )
+                        else:
+                            # PAPER is now an execution mirror of LIVE:
+                            # if ERL1 says BLOCK, PAPER does not fake a fill.
+                            mode_exec_ready = strict_exec_ready
+
+                        if economic_ready and mode_exec_ready:
                             if EXECUTION_MODE == "PAPER":
-                                paper_event = (
-                                    execute_paper_order(
-                                        state
-                                    )
-                                )
+                                paper_event = execute_paper_order(state)
                             else:
-                                paper_event = (
-                                    execute_exchange_order(
-                                        state,
-                                        EXECUTION_MODE,
-                                    )
+                                paper_event = execute_exchange_order(
+                                    state,
+                                    EXECUTION_MODE,
                                 )
-                        elif not tradeability_decision[
-                            "allowed"
-                        ]:
+
+                        elif not tradeability_decision["allowed"]:
                             paper_event = {
                                 "time": now_iso(),
-                                "state_id":
-                                    state["state_id"],
-                                "strategy":
-                                    state[
-                                        "chosen_strategy"
-                                    ],
+                                "state_id": state["state_id"],
+                                "strategy": state["chosen_strategy"],
                                 "action": action,
-                                "status":
-                                    "BLOCKED_TRADEABILITY_GATE",
-                                "reason":
-                                    tradeability_decision[
-                                        "reason"
-                                    ],
-                                "prediction_horizon":
-                                    prediction_horizon,
-                                "tradeability_score":
-                                    tradeability_decision[
-                                        "score"
-                                    ],
-                                "motion_budget_pct":
-                                    tradeability_decision[
-                                        "motion_budget_pct"
-                                    ],
-                                "required_move_pct":
-                                    tradeability_decision[
-                                        "required_move_pct"
-                                    ],
+                                "status": "BLOCKED_TRADEABILITY_GATE",
+                                "reason": tradeability_decision["reason"],
+                                "prediction_horizon": prediction_horizon,
+                                "tradeability_score": tradeability_decision["score"],
+                                "motion_budget_pct": tradeability_decision["motion_budget_pct"],
+                                "required_move_pct": tradeability_decision["required_move_pct"],
                             }
-
-                            append_jsonl(
-                                PAPER_TRADES_FILE,
-                                paper_event,
-                            )
-
+                            append_jsonl(PAPER_TRADES_FILE, paper_event)
                             print(
                                 "TRADEABILITY GOVERNOR:",
                                 action,
                                 "BLOCKED |",
                                 paper_event["reason"],
                                 "| score=",
-                                paper_event[
-                                    "tradeability_score"
-                                ],
+                                paper_event["tradeability_score"],
                             )
-                        else:
+
+                        elif not edge_decision["allowed"]:
                             paper_event = {
                                 "time": now_iso(),
-                                "state_id":
-                                    state["state_id"],
-                                "strategy":
-                                    state[
-                                        "chosen_strategy"
-                                    ],
+                                "state_id": state["state_id"],
+                                "strategy": state["chosen_strategy"],
                                 "action": action,
-                                "status":
-                                    "BLOCKED_EDGE_GATE",
-                                "reason":
-                                    edge_decision[
-                                        "reason"
-                                    ],
-                                "prediction_horizon":
-                                    prediction_horizon,
-                                "matrix_edge_pct":
-                                    horizon_info[
-                                        "avg_trade_net_edge_pct"
-                                    ],
+                                "status": "BLOCKED_EDGE_GATE",
+                                "reason": edge_decision["reason"],
+                                "prediction_horizon": prediction_horizon,
+                                "matrix_edge_pct": horizon_info["avg_trade_net_edge_pct"],
                             }
-
-                            append_jsonl(
-                                PAPER_TRADES_FILE,
-                                paper_event,
-                            )
-
+                            append_jsonl(PAPER_TRADES_FILE, paper_event)
                             print(
                                 "EDGE GOVERNOR:",
+                                action,
+                                "BLOCKED |",
+                                paper_event["reason"],
+                            )
+
+                        else:
+                            er_blockers = list(
+                                latest_execution_readiness.get(
+                                    "blockers",
+                                    [],
+                                )
+                                or []
+                            )
+                            paper_event = {
+                                "time": now_iso(),
+                                "state_id": state["state_id"],
+                                "strategy": state["chosen_strategy"],
+                                "action": action,
+                                "status": (
+                                    "BLOCKED_ERL1_PAPER"
+                                    if EXECUTION_MODE == "PAPER"
+                                    else "BLOCKED_ERL1_EXECUTION"
+                                ),
+                                "reason": ",".join(er_blockers) or "ERL1_NOT_READY",
+                                "prediction_horizon": prediction_horizon,
+                                "readiness_score": latest_execution_readiness.get("score"),
+                            }
+                            append_jsonl(
+                                PAPER_TRADES_FILE
+                                if EXECUTION_MODE == "PAPER"
+                                else EXCHANGE_TRADES_FILE,
+                                paper_event,
+                            )
+                            print(
+                                "ERL1 EXECUTION GOVERNOR:",
                                 action,
                                 "BLOCKED |",
                                 paper_event["reason"],

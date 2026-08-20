@@ -957,3 +957,22 @@ footer {
 }
 
 /* ===== END MOBILE STATE FIELD FIX v1.9 ===== */
+
+/* ===== MOBILE BACKGROUND BALANCE v2.0 ===== */
+@media (max-width: 700px) {
+  .universe-bg-layer {
+    opacity: .34 !important;
+    filter: saturate(.95) contrast(1.02) brightness(.68) blur(.4px) !important;
+  }
+
+  .universe-bg-veil {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(3,7,14,.50) 0%,
+        rgba(3,7,14,.58) 45%,
+        rgba(3,7,14,.70) 100%
+      ) !important;
+  }
+}
+/* ===== END MOBILE BACKGROUND BALANCE v2.0 ===== */

@@ -29,7 +29,18 @@ app.config.update(
 )
 ADMIN_KEY=os.getenv("ADMIN_KEY","")
 
-init_db()
+# Render boot safety:
+# Never block Gunicorn startup on a sleeping/unreachable database.
+# Existing deployments already have their schema. Set BOOTSTRAP_DB_ON_START=1
+# only when an explicit boot-time schema/seed pass is desired.
+BOOTSTRAP_DB_ON_START = os.getenv("BOOTSTRAP_DB_ON_START", "0") == "1"
+
+if BOOTSTRAP_DB_ON_START:
+    try:
+        init_db()
+    except Exception as exc:
+        print(f"[BOOT] init_db skipped after error: {type(exc).__name__}: {exc}", flush=True)
+
 
 def seed_benchmarks():
     seed_files=[
@@ -133,7 +144,12 @@ def seed_benchmarks():
         if changed:
             db.commit()
 
-seed_benchmarks()
+if BOOTSTRAP_DB_ON_START:
+    try:
+        seed_benchmarks()
+    except Exception as exc:
+        print(f"[BOOT] seed_benchmarks skipped after error: {type(exc).__name__}: {exc}", flush=True)
+
 
 from benchmark_compare import bp as benchmark_compare_bp
 app.register_blueprint(benchmark_compare_bp)
@@ -274,6 +290,14 @@ def validate_state_follow(data):
         c=a.get("confidence")
         if not isinstance(c,(int,float)) or not 50<=c<=100: return None,f"{iid}: confidence 50..100."
     return ups,None
+
+@app.get("/healthz")
+def healthz():
+    return jsonify({
+        "ok": True,
+        "service": "cognitive-command-center",
+        "boot": "ready"
+    }), 200
 
 @app.get("/")
 def index():

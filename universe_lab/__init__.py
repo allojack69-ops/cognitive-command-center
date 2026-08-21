@@ -5,7 +5,7 @@ from .grp import bp as grp_bp
 from .observer import bp as observer_bp
 from .observer_control import bp as observer_control_bp
 from .observer_testnet import bp as observer_testnet_bp
-from .observer_edge import bp as observer_edge_bp
+from .observer_edge_memory import bp as observer_edge_bp
 from .runtime_resilience import start_background_schema_bootstrap
 from .mesh import bp as mesh_bp
 from .public import bp as public_bp

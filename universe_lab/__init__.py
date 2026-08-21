@@ -6,6 +6,7 @@ from .observer import bp as observer_bp
 from .observer_control import bp as observer_control_bp
 from .observer_testnet import bp as observer_testnet_bp
 from .observer_edge import bp as observer_edge_bp
+from .runtime_resilience import start_background_schema_bootstrap
 from .mesh import bp as mesh_bp
 from .public import bp as public_bp
 from .analytics import bp as analytics_bp
@@ -33,3 +34,6 @@ def register_universe_lab(app):
     app.register_blueprint(observer_testnet_bp)
     app.register_blueprint(observer_edge_bp)
     app.register_blueprint(mesh_bp)
+
+    # Restore DB schema after web boot without blocking Gunicorn.
+    start_background_schema_bootstrap()

@@ -1,42 +1,15 @@
 import threading
 import time
 
-from flask import jsonify
-from werkzeug.exceptions import HTTPException
-
 from db import init_db
 from .models import init_lab_models
-from .observer_edge import bp as observer_edge_bp
-
 
 _bootstrap_started = False
 _bootstrap_lock = threading.Lock()
 
 
-def _edge_json_error(exc):
-    """Never return an HTML error page to Observer edge clients."""
-    if isinstance(exc, HTTPException):
-        return jsonify({
-            "ok": False,
-            "error": exc.name.lower().replace(" ", "_"),
-            "detail": exc.description,
-            "http_status": exc.code,
-        }), exc.code
-
-    return jsonify({
-        "ok": False,
-        "error": "observer_edge_unavailable",
-        "detail": f"{type(exc).__name__}: {exc}"[:500],
-        "http_status": 503,
-    }), 503
-
-
-observer_edge_bp.register_error_handler(Exception, _edge_json_error)
-
-
 def _bootstrap_schema_worker():
-    """Create missing DB tables after web boot, with bounded retries."""
-    for attempt in range(1, 6):
+    for attempt in range(1, 4):
         try:
             init_db()
             init_lab_models()
@@ -47,16 +20,15 @@ def _bootstrap_schema_worker():
             return
         except Exception as exc:
             print(
-                f"[DB-BOOTSTRAP] attempt {attempt}/5 failed: "
+                f"[DB-BOOTSTRAP] attempt {attempt}/3 failed: "
                 f"{type(exc).__name__}: {exc}",
                 flush=True,
             )
-            if attempt < 5:
-                time.sleep(min(10, attempt * 2))
+            if attempt < 3:
+                time.sleep(min(8, attempt * 2))
 
     print(
-        "[DB-BOOTSTRAP] schema still unavailable; web stays online and "
-        "Observer edge APIs return structured JSON errors.",
+        "[DB-BOOTSTRAP] DB unavailable; web and Observer edge remain online.",
         flush=True,
     )
 

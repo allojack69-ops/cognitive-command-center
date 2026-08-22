@@ -47,6 +47,12 @@ PROJECTS = [
         "endpoint":"universe_mesh.home","kind":"Field system","status":"FIELD","audience":"research",
         "cta":"Open field lab"
     },
+    {
+        "id":"robus","number":"09","title":"ROBUS / ADAPTIVE ROBUSTNESS",
+        "subtitle":"Multi-scale robustness decomposition: hidden interactions, critical boundaries, hysteresis, blind regions and EFP loss.",
+        "endpoint":"universe_robus.home","kind":"Robustness","status":"ENGINE","audience":"research",
+        "cta":"Open ROBUS"
+    },
 ]
 
 

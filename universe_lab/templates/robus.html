@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}ROBUS · Universe Lab{% endblock %}
+{% block content %}
+<section class="public-hero compact-hero">
+  <div class="eyebrow">ADAPTIVE ROBUSTNESS DECOMPOSITION</div>
+  <h1>ROBUS.</h1>
+  <p class="public-lead">Find hidden failure modes, nonlinear interactions, critical boundaries, hysteresis and epistemic blind regions. Synthetic sandbox only: values are model diagnostics, not empirical claims.</p>
+</section>
+
+<section class="data-note">
+  <div style="width:100%">
+    <div class="eyebrow">INPUT</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end">
+      <label>Model<select id="model" style="width:100%;padding:10px;margin-top:6px">
+        {% for key,m in models.items() %}<option value="{{key}}">{{m.title}}</option>{% endfor %}
+      </select></label>
+      <label>Horizon<input id="horizon" type="number" min="5" max="120" value="30" style="width:100%;padding:10px;margin-top:6px"></label>
+      <label>Recovery<input id="recovery" type="number" min="5" max="120" value="20" style="width:100%;padding:10px;margin-top:6px"></label>
+      <button class="button primary" id="run">Run ROBUS →</button>
+    </div>
+    <p id="status" style="margin-top:12px;opacity:.75">Ready.</p>
+  </div>
+</section>
+
+<div id="out" style="display:none">
+  <div class="labstats section-gap">
+    <div><b id="radius">—</b><span>critical radius</span></div>
+    <div><b id="rank">—</b><span>effective rank</span></div>
+    <div><b id="modes95">—</b><span>modes for 95%</span></div>
+    <div><b id="blind">—</b><span>blind region</span></div>
+  </div>
+
+  <section class="section-head"><div><div class="eyebrow">FAILURE MODES</div><h2>Adaptive fingerprint</h2></div></section>
+  <div style="overflow:auto"><table style="width:100%;border-collapse:collapse" id="modesTable">
+    <thead><tr><th align="left">Probe</th><th>Local</th><th>Nonlinear</th><th>Critical</th><th>Cause</th><th>Hysteresis</th><th>Min EFP</th><th>Blind</th></tr></thead><tbody></tbody>
+  </table></div>
+
+  <section class="section-head section-gap"><div><div class="eyebrow">RELATIONAL CAUSALITY</div><h2>Strongest interactions</h2></div></section>
+  <div id="interactions" class="projectgrid"></div>
+</div>
+
+<script>
+const f=n => (n===null || n===undefined) ? '—' : Number(n).toFixed(3);
+async function run(){
+  const status=document.getElementById('status'); status.textContent='Computing multi-scale response manifold…';
+  document.getElementById('run').disabled=true;
+  try{
+    const res=await fetch('{{ url_for("universe_robus.api_analyze") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:document.getElementById('model').value,horizon:+document.getElementById('horizon').value,recovery_horizon:+document.getElementById('recovery').value})});
+    const d=await res.json(); if(!res.ok) throw new Error(d.error||'ROBUS failed');
+    document.getElementById('radius').textContent=f(d.global_critical_radius);
+    document.getElementById('rank').textContent=f(d.effective_rank);
+    document.getElementById('modes95').textContent=d.explained_modes_95;
+    document.getElementById('blind').textContent=d.blind_region_detected?'DETECTED':'clear';
+    const body=document.querySelector('#modesTable tbody'); body.innerHTML='';
+    d.modes.forEach(m=>{const tr=document.createElement('tr'); tr.innerHTML=`<td><b>${m.name}</b></td><td align="center">${f(m.local_sensitivity)}</td><td align="center">${f(m.nonlinear_ratio)}</td><td align="center">${f(m.critical_radius)}</td><td align="center">${m.critical_reason||'—'}</td><td align="center">${f(m.hysteresis)}</td><td align="center">${f(m.min_efp)}</td><td align="center">${(100*m.blind_fraction).toFixed(1)}%</td>`; body.appendChild(tr)});
+    const ints=document.getElementById('interactions'); ints.innerHTML='';
+    d.interactions.slice(0,6).forEach((x,i)=>{const el=document.createElement('div');el.className='projectcard research-card';el.innerHTML=`<div class="projecttop"><span class="projectnum">${String(i+1).padStart(2,'0')}</span><span class="projectstatus">INTERACTION</span></div><h2>${x.left} × ${x.right}</h2><p>Non-additive response score</p><div class="projectkind">${f(x.score)}</div>`;ints.appendChild(el)});
+    document.getElementById('out').style.display='block';
+    status.textContent=`${d.model.title} · synthetic diagnostic complete.`;
+  }catch(e){status.textContent='ERROR: '+e.message} finally{document.getElementById('run').disabled=false}
+}
+document.getElementById('run').addEventListener('click',run);
+</script>
+{% endblock %}

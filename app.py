@@ -1,5 +1,6 @@
 
 import os, json, secrets, csv, io
+import encodings.idna  # force stdlib IDNA codec registration
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 from pathlib import Path
